@@ -1,4 +1,4 @@
-package itk.aakb.dk.gg_saarpleje;
+package itk.aakb.dk.gg_affaldsvarme;
 
 import android.app.Activity;
 import android.content.Context;
@@ -194,7 +194,7 @@ public class CameraActivity extends Activity {
      * Create a File for saving an image
      */
     private File getOutputImageFile() {
-        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), MainActivity.FILE_DIRECTORY);
+        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM) + "/" + MainActivity.FILE_DIRECTORY, filePrefix );
 
         Log.i(TAG, mediaStorageDir.getAbsolutePath());
 

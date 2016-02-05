@@ -1,4 +1,4 @@
-# gg_saarpleje
+# gg_affaldvarme
 Google Glass saarpleje prototype
 
 

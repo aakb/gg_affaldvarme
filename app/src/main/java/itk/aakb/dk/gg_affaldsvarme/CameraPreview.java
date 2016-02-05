@@ -1,4 +1,4 @@
-package itk.aakb.dk.gg_saarpleje;
+package itk.aakb.dk.gg_affaldsvarme;
 
 import android.content.Context;
 import android.hardware.Camera;

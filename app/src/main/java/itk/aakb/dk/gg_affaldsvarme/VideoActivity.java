@@ -1,4 +1,4 @@
-package itk.aakb.dk.gg_saarpleje;
+package itk.aakb.dk.gg_affaldsvarme;
 
 import android.app.Activity;
 import android.content.Context;
@@ -23,6 +23,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
+
 
 public class VideoActivity extends Activity {
     private static final String TAG = "VideoActivity";
@@ -353,7 +354,7 @@ public class VideoActivity extends Activity {
      * Create a File for saving a video
      */
     private File getOutputVideoFile() {
-        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), MainActivity.FILE_DIRECTORY);
+        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM) + "/" + MainActivity.FILE_DIRECTORY, filePrefix );
 
         // Create the storage directory if it does not exist
         if (!mediaStorageDir.exists()) {

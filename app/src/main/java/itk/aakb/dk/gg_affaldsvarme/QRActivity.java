@@ -1,4 +1,4 @@
-package itk.aakb.dk.gg_saarpleje;
+package itk.aakb.dk.gg_affaldsvarme;
 
 import android.app.Activity;
 import android.content.Context;
@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+
 
 public class QRActivity extends Activity {
     private static final String TAG = "QRActivity";
