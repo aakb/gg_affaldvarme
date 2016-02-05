@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Use the constants defined in the ContextualMenus.Command enum-->
+    <item
+        android:id="@+id/scan_patient_menu_item"
+        android:title="@string/scan_patient" />
+    <item
+        android:id="@+id/cancel_menu_item"
+        android:title="@string/cancel">
+        <menu>
+            <item
+                android:id="@+id/confirm_cancel"
+                android:title="@string/confirm_cancel" />
+            <item
+                android:id="@+id/abort_cancel"
+                android:title="@string/abort_cancel" />
+        </menu>
+    </item>
+</menu>
