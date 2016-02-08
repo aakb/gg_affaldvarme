@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Affaldsvarme</string>
+    <string name="app_name">Affaldvarme</string>
     <string name="countdown_default">...</string>
     <string name="progress_image">Images</string>
     <string name="progress_videos">Videos</string>

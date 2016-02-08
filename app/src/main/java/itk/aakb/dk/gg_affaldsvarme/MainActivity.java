@@ -21,9 +21,9 @@ import java.io.File;
 import java.util.ArrayList;
 
 public class MainActivity extends Activity {
-    public static final String FILE_DIRECTORY = "Saarpleje";
+    public static final String FILE_DIRECTORY = "Affaldvarme";
 
-    private static final String TAG = "saarpleje MainActivity";
+    private static final String TAG = "affaldvarme MainActivity";
     private static final int TAKE_PICTURE_REQUEST = 101;
     private static final int RECORD_VIDEO_CAPTURE_REQUEST = 102;
     private static final int SCAN_PATIENT_REQUEST = 103;
