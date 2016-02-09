@@ -4,40 +4,56 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.AssetManager;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.Window;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.glass.view.WindowUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Properties;
 
 public class MainActivity extends Activity {
     public static final String FILE_DIRECTORY = "Affaldvarme";
 
-    private static final String TAG = "affaldvarme MainActivity";
+    private static final String TAG = "affaldvarme main";
     private static final int TAKE_PICTURE_REQUEST = 101;
     private static final int RECORD_VIDEO_CAPTURE_REQUEST = 102;
-    private static final int SCAN_PATIENT_REQUEST = 103;
+    private static final int SCAN_ADRESS_REQUEST = 103;
     private static final int RECORD_MEMO_REQUEST = 104;
     private static final String STATE_VIDEOS = "videos";
     private static final String STATE_PICTURES = "pictures";
-    private static final String STATE_PATIENT = "patient";
+
     private static final String STATE_MEMOS = "memos";
+    private static final String STATE_EVENT = "url";
+    private static final String STATE_ADRESS = "adress";
 
     private ArrayList<String> imagePaths = new ArrayList<>();
     private ArrayList<String> videoPaths = new ArrayList<>();
     private ArrayList<String> memoPaths = new ArrayList<>();
 
-    private String patient = null;
+    String adress = null;
+    private String url = null;
+    BrilleappenClient client;
+    private String username;
+    private String password;
+    String captionTwitter;
+    String captionInstagram;
+
+
 
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
@@ -47,7 +63,8 @@ public class MainActivity extends Activity {
         savedInstanceState.putStringArrayList(STATE_VIDEOS, videoPaths);
         savedInstanceState.putStringArrayList(STATE_PICTURES, imagePaths);
         savedInstanceState.putStringArrayList(STATE_MEMOS, memoPaths);
-        savedInstanceState.putString(STATE_PATIENT, patient);
+        savedInstanceState.putString(STATE_ADRESS, adress);
+        savedInstanceState.putString(STATE_EVENT, url);
 
         // Always call the superclass so it can save the view hierarchy state
         super.onSaveInstanceState(savedInstanceState);
@@ -66,9 +83,21 @@ public class MainActivity extends Activity {
         // window feature, be sure to request this before
         // setContentView() is called
         getWindow().requestFeature(WindowUtils.FEATURE_VOICE_COMMANDS);
+        getWindow().requestFeature(Window.FEATURE_OPTIONS_PANEL);
 
-        // Set the main activity view.
-        setContentView(R.layout.activity_layout);
+        Properties properties = new Properties();
+        try {
+            AssetManager assetManager = getApplicationContext().getAssets();
+            InputStream inputStream = assetManager.open("config.properties");
+            properties.load(inputStream);
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage());
+            finish();
+        }
+
+        this.username = properties.getProperty("Username");
+        this.password = properties.getProperty("Password");
+
 
         // Check whether we're recreating a previously destroyed instance
         if (savedInstanceState != null) {
@@ -78,13 +107,29 @@ public class MainActivity extends Activity {
             imagePaths = savedInstanceState.getStringArrayList(STATE_PICTURES);
             videoPaths = savedInstanceState.getStringArrayList(STATE_VIDEOS);
             memoPaths = savedInstanceState.getStringArrayList(STATE_MEMOS);
-            patient = savedInstanceState.getString(STATE_PATIENT);
+            adress = savedInstanceState.getString(STATE_ADRESS);
+            url = savedInstanceState.getString(STATE_EVENT);
+
         } else {
             Log.i(TAG, "Restoring state");
 
             // Probably initialize members with default values for a new instance
             restoreState();
         }
+
+        if (url != null) {
+            client = new BrilleappenClient(this, url, username, password);
+
+            // Set the main activity view.
+            setContentView(R.layout.activity_layout);
+
+            updateUI();
+        }
+        else {
+            // Set the main activity view.
+            setContentView(R.layout.activity_layout_init);
+        }
+
 
         Log.i(TAG, "------------");
 
@@ -106,11 +151,11 @@ public class MainActivity extends Activity {
      */
     @Override
     public boolean onCreatePanelMenu(int featureId, Menu menu) {
-        if (featureId == WindowUtils.FEATURE_VOICE_COMMANDS) {
-            if (patient != null) {
+        if (featureId == WindowUtils.FEATURE_VOICE_COMMANDS ||
+                featureId == Window.FEATURE_OPTIONS_PANEL) {
+            if (url != null) {
                 getMenuInflater().inflate(R.menu.main, menu);
-            }
-            else {
+            } else {
                 getMenuInflater().inflate(R.menu.start, menu);
             }
 
@@ -129,7 +174,7 @@ public class MainActivity extends Activity {
      */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        if (patient != null) {
+        if (url != null) {
             getMenuInflater().inflate(R.menu.main, menu);
         }
         else {
@@ -151,7 +196,8 @@ public class MainActivity extends Activity {
      */
     @Override
     public boolean onMenuItemSelected(int featureId, MenuItem item) {
-        if (featureId == WindowUtils.FEATURE_VOICE_COMMANDS) {
+        if (featureId == WindowUtils.FEATURE_VOICE_COMMANDS ||
+                featureId == Window.FEATURE_OPTIONS_PANEL) {
             switch (item.getItemId()) {
                 case R.id.take_image_menu_item:
                     Log.i(TAG, "menu: take before image");
@@ -182,7 +228,7 @@ public class MainActivity extends Activity {
                     break;
                 case R.id.scan_patient_menu_item:
                     Intent scanPatientIntent = new Intent(this, QRActivity.class);
-                    startActivityForResult(scanPatientIntent, SCAN_PATIENT_REQUEST);
+                    startActivityForResult(scanPatientIntent, SCAN_ADRESS_REQUEST);
 
                     break;
                 case R.id.finish_menu_item:
@@ -206,7 +252,7 @@ public class MainActivity extends Activity {
      */
     private void recordMemo() {
         Intent intent = new Intent(this, MemoActivity.class);
-        intent.putExtra("FILE_PREFIX", patient);
+        intent.putExtra("FILE_PREFIX", adress);
         startActivityForResult(intent, RECORD_MEMO_REQUEST);
     }
 
@@ -215,7 +261,7 @@ public class MainActivity extends Activity {
      */
     private void takePicture() {
         Intent intent = new Intent(this, CameraActivity.class);
-        intent.putExtra("FILE_PREFIX", patient);
+        intent.putExtra("FILE_PREFIX", adress);
         startActivityForResult(intent, TAKE_PICTURE_REQUEST);
     }
 
@@ -224,7 +270,7 @@ public class MainActivity extends Activity {
      */
     private void recordVideo() {
         Intent intent = new Intent(this, VideoActivity.class);
-        intent.putExtra("FILE_PREFIX", patient);
+        intent.putExtra("FILE_PREFIX", adress);
         startActivityForResult(intent, RECORD_VIDEO_CAPTURE_REQUEST);
     }
 
@@ -241,7 +287,8 @@ public class MainActivity extends Activity {
         editor.putString(STATE_VIDEOS, serializedVideoPaths);
         editor.putString(STATE_PICTURES, serializedImagePaths);
         editor.putString(STATE_MEMOS, serializedMemoPaths);
-        editor.putString(STATE_PATIENT, patient);
+        editor.putString(STATE_ADRESS, adress);
+        editor.putString(STATE_EVENT, url);
         editor.apply();
     }
 
@@ -260,7 +307,8 @@ public class MainActivity extends Activity {
      */
     private void restoreState() {
         SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
-        patient = sharedPref.getString(STATE_PATIENT, null);
+        url = sharedPref.getString(STATE_EVENT, null);
+        adress = sharedPref.getString(STATE_ADRESS, null);
         String serializedVideoPaths = sharedPref.getString(STATE_VIDEOS, "[]");
         String serializedImagePaths = sharedPref.getString(STATE_PICTURES, "[]");
         String serializedMemoPaths = sharedPref.getString(STATE_MEMOS, "[]");
@@ -289,12 +337,10 @@ public class MainActivity extends Activity {
             // ignore
         }
 
-        Log.i(TAG, "Restored patient: " + patient);
+        Log.i(TAG, "Restored patient: " + adress);
         Log.i(TAG, "Restored imagePaths: " + imagePaths);
         Log.i(TAG, "Restored videoPaths: " + videoPaths);
         Log.i(TAG, "Restored memoPaths: " + memoPaths);
-
-        updateUI();
     }
 
     /**
@@ -352,6 +398,10 @@ public class MainActivity extends Activity {
             imagePaths.add(data.getStringExtra("path"));
             saveState();
             updateUI();
+            
+            client = new BrilleappenClient(this, url, username, password);
+
+            client.execute(new File(data.getStringExtra("path")), false);
         }
         else if (requestCode == RECORD_VIDEO_CAPTURE_REQUEST && resultCode == RESULT_OK) {
             Log.i(TAG, "Received video: " + data.getStringExtra("path"));
@@ -365,11 +415,29 @@ public class MainActivity extends Activity {
             memoPaths.add(data.getStringExtra("path"));
             saveState();
             updateUI();
-        }
-        else if (requestCode == SCAN_PATIENT_REQUEST && resultCode == RESULT_OK) {
-            Log.i(TAG, "Received patient QR: " + data.getStringExtra("result"));
 
-            patient = data.getStringExtra("result");
+        } else if (requestCode == SCAN_ADRESS_REQUEST && resultCode == RESULT_OK) {
+            Log.i(TAG, "Received url QR: " + data.getStringExtra("result"));
+
+            String result = data.getStringExtra("result");
+
+            try {
+                JSONObject jResult = new JSONObject(result);
+                JSONObject caption = jResult.getJSONObject("caption");
+
+                url = jResult.getString("url");
+                adress = jResult.getString("title");
+                captionTwitter = caption.getString("twitter");
+                captionInstagram = caption.getString("instagram");
+
+                client = new BrilleappenClient(this, url, username, password);
+            }
+            catch (JSONException e) {
+                Log.e(TAG, e.getMessage());
+            }
+
+            // Set the main activity view.
+            setContentView(R.layout.activity_layout);
 
             saveState();
             updateUI();
@@ -386,14 +454,14 @@ public class MainActivity extends Activity {
      */
     private void updateTextField(int id, String value, Integer color) {
         TextView v = (TextView) findViewById(id);
-        if(value != null) {
+        if (value != null) {
             v.setText(value);
         }
         if (color != null) {
             v.setTextColor(color);
         }
         v.invalidate();
-   }
+    }
 
     /**
      * Update the UI.
@@ -408,6 +476,15 @@ public class MainActivity extends Activity {
         updateTextField(R.id.memoNumber, String.valueOf(memoPaths.size()), memoPaths.size() > 0 ? Color.WHITE : null);
         updateTextField(R.id.memoLabel, null, memoPaths.size() > 0 ? Color.WHITE : null);
 
-        updateTextField(R.id.patientIdentifier, patient, patient != null ? Color.WHITE : null);
+        updateTextField(R.id.patientIdentifier, adress, adress != null ? Color.WHITE : null);
+    }
+
+    /**
+     * Send a toast
+     *
+     * @param message Message to display
+     */
+    public void proposeAToast(String message) {
+        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
     }
 }

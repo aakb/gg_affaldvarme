@@ -5,6 +5,7 @@
     <string name="progress_videos">Videos</string>
     <string name="patient">Adress: </string>
     <string name="receiver">Email: </string>
+    <string name="get_started">Open menu to get started</string>
     <string name="no_media_files">No media files</string>
     <plurals name="uploading_n_files">
         <item quantity="one">Uploading 1 file</item>

@@ -18,7 +18,7 @@
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:text="@string/countdown_default"
-        android:id="@+id/text_camera_duration"
+        android:id="@+id/text_camera_helptext"
         android:layout_gravity="center|center_horizontal"
         android:layout_alignParentEnd="false"
         android:layout_alignParentStart="false"

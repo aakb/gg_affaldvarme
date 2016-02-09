@@ -6,11 +6,16 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.widget.FrameLayout;
 import android.widget.TextView;
+
+import com.google.android.glass.touchpad.Gesture;
+import com.google.android.glass.touchpad.GestureDetector;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -21,15 +26,18 @@ import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class CameraActivity extends Activity {
+public class CameraActivity extends Activity implements GestureDetector.BaseListener {
     private static final String TAG = "CameraActivity";
 
     private Camera camera;
     private CameraPreview cameraPreview;
-    private TextView countdownText;
+    private TextView textField;
     private Timer timer;
     private int timerExecutions = 0;
     private String filePrefix;
+
+    private AudioManager audioManager;
+    private GestureDetector gestureDetector;
 
     /**
      * On create.
@@ -46,9 +54,12 @@ public class CameraActivity extends Activity {
         Intent intent = getIntent();
         filePrefix = intent.getStringExtra("FILE_PREFIX");
 
-        setContentView(R.layout.activity_camera_countdown);
+        setContentView(R.layout.activity_camera);
 
-        countdownText = (TextView) findViewById(R.id.text_camera_duration);
+        textField = (TextView) findViewById(R.id.text_camera_helptext);
+
+        textField.setText("Tap to take picture");
+
 
         if (!checkCameraHardware(this)) {
             Log.i(TAG, "no camera");
@@ -58,14 +69,40 @@ public class CameraActivity extends Activity {
         // Create an instance of Camera
         camera = getCameraInstance();
 
+        if (camera == null) {
+            // @TODO: Throw toast
+
+            finish();
+        }
+
         // Create our Preview view and set it as the content of our activity.
         cameraPreview = new CameraPreview(this, camera);
         FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
         preview.addView(cameraPreview);
 
-        // Reset timer executions.
-        timerExecutions = 0;
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        gestureDetector = new GestureDetector(this).setBaseListener(this);
 
+
+
+        // Reset timer executions.
+
+    }
+
+    public boolean onGenericMotionEvent(MotionEvent event) {
+        return gestureDetector.onMotionEvent(event);
+    }
+
+    public boolean onGesture(Gesture gesture) {
+        if (Gesture.TAP.equals(gesture)) {
+
+                handleSingleTap();
+                return true;
+
+        }
+        return false;
+    }
+        /*
         countdownText.setText("3");
 
         timer = new Timer();
@@ -92,6 +129,18 @@ public class CameraActivity extends Activity {
             }
         }, 2000, 1000);
     }
+
+ */
+    private void handleSingleTap() {
+        Log.i(TAG, "Single tap.");
+
+        audioManager.playSoundEffect(AudioManager.FX_KEY_CLICK);
+
+        camera.takePicture(null, null, mPicture);
+    }
+
+
+
 
     /**
      * A safe way to get an instance of the Camera object.
@@ -148,6 +197,7 @@ public class CameraActivity extends Activity {
                 // Add path to file as result
                 Intent returnIntent = new Intent();
                 returnIntent.putExtra("path", pictureFile.getAbsolutePath());
+                returnIntent.putExtra("instaShare", false);
                 setResult(RESULT_OK, returnIntent);
 
                 // Finish activity
@@ -194,7 +244,9 @@ public class CameraActivity extends Activity {
      * Create a File for saving an image
      */
     private File getOutputImageFile() {
-        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM) + "/" + MainActivity.FILE_DIRECTORY, filePrefix );
+        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), MainActivity.FILE_DIRECTORY);
+
+       // File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM) + "/" + MainActivity.FILE_DIRECTORY, filePrefix );
 
         Log.i(TAG, mediaStorageDir.getAbsolutePath());
 
