@@ -20,23 +20,35 @@ import java.net.URLConnection;
 public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
     private static final String TAG = "bibliotek Brilleappen";
 
+    private static final int EXECUTE_SENDFILE = 1;
+    private static final int EXECUTE_NOTIFY = 2;
     private String url;
     private String username;
     private String password;
-    private MainActivity activity;
+    private BrilleappenClientListener clientListener;
 
-    public BrilleappenClient(MainActivity activity, String url, String username, String password) {
+    public BrilleappenClient(BrilleappenClientListener clientListener, String url, String username, String password) {
         this.url = url.replaceFirst("/+$", "");
         this.username = username;
         this.password = password;
-        this.activity = activity;
+        this.clientListener = clientListener;
     }
 
     protected Boolean doInBackground(Object... args) {
-        File file = (File)args[0];
-        boolean share = (boolean)args[1];
+        int action = (int)args[0];
 
-        sendFile(file, share);
+        switch (action) {
+            case EXECUTE_SENDFILE:
+                File file = (File) args[1];
+                boolean share = (boolean) args[2];
+                _sendFile(file, share);
+                break;
+            case EXECUTE_NOTIFY:
+                JSONObject result = (JSONObject)args[1];
+                _notifyFile(result);
+                break;
+        }
+
         return true;
     }
 
@@ -45,7 +57,44 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
         // TODO: do something with the feed
     }
 
+    private void _notifyFile(JSONObject clientResult) {
+        try {
+            String notifyUrl = clientResult.getString("notify_url");
+            URL url = new URL(notifyUrl);
+
+            HttpURLConnection connection = (HttpURLConnection)url.openConnection();
+
+            String authString = username + ":" + password;
+            String authStringEnc = Base64.encodeToString(authString.getBytes(), Base64.DEFAULT);
+
+            connection.setDoInput(true);
+            connection.setDoOutput(true);
+            connection.setUseCaches(false);
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Authorization", "Basic " + authStringEnc);
+
+            // Response from the server (code and message)
+            int serverResponseCode = connection.getResponseCode();
+            String response = getResponse(connection);
+
+            JSONObject result = new JSONObject(response);
+
+            clientListener.notifyFileDone(this, result);
+
+            Log.i(TAG, serverResponseCode + ": " + response);
+        } catch (Throwable t) {
+            Log.e(TAG, t.getMessage());
+        }
+    }
+    public void notifyFile(JSONObject result) {
+        execute(EXECUTE_NOTIFY, result);
+    }
+
     public void sendFile(File file, boolean share) {
+        execute(EXECUTE_SENDFILE, file, share);
+    }
+
+    private void _sendFile(File file, boolean share) {
         try {
             String mimeType = URLConnection.guessContentTypeFromName(file.getName());
 
@@ -72,14 +121,9 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
             int serverResponseCode = connection.getResponseCode();
             String response = getResponse(connection);
 
-            JSONObject mainObject = new JSONObject(response);
-            String message = mainObject.getString("message");
+            JSONObject result = new JSONObject(response);
 
-            if (serverResponseCode != 200) {
-                message = "Error: " + message;
-            }
-
-            //activity.proposeAToast(message);
+            clientListener.sendFileDone(this, result);
 
             Log.i(TAG, serverResponseCode + ": " + response);
         } catch (Throwable t) {

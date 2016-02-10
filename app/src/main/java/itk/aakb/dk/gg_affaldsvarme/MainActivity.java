@@ -26,16 +26,19 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Properties;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements BrilleappenClientListener {
     public static final String FILE_DIRECTORY = "Affaldvarme";
 
     private static final String TAG = "affaldvarme main";
+    private static final int EXECUTE_SENDFILE = 1;
     private static final int TAKE_PICTURE_REQUEST = 101;
     private static final int RECORD_VIDEO_CAPTURE_REQUEST = 102;
     private static final int SCAN_ADRESS_REQUEST = 103;
     private static final int RECORD_MEMO_REQUEST = 104;
+    private static final int NOTIFY_REQUEST = 105;
     private static final String STATE_VIDEOS = "videos";
     private static final String STATE_PICTURES = "pictures";
+
 
     private static final String STATE_MEMOS = "memos";
     private static final String STATE_EVENT = "url";
@@ -48,11 +51,11 @@ public class MainActivity extends Activity {
     String adress = null;
     private String url = null;
     BrilleappenClient client;
+    private JSONObject clientResult;
     private String username;
     private String password;
     String captionTwitter;
     String captionInstagram;
-
 
 
     @Override
@@ -217,6 +220,12 @@ public class MainActivity extends Activity {
                     recordMemo();
 
                     break;
+                case R.id.notify_menu_item:
+                    Log.i(TAG, "menu: Notify by email");
+
+                    notifyByEmail();
+
+                    break;
                 case R.id.confirm_cancel:
                     Log.i(TAG, "menu: Confirm: cancel and exit");
 
@@ -226,6 +235,7 @@ public class MainActivity extends Activity {
                     finish();
 
                     break;
+
                 case R.id.scan_patient_menu_item:
                     Intent scanPatientIntent = new Intent(this, QRActivity.class);
                     startActivityForResult(scanPatientIntent, SCAN_ADRESS_REQUEST);
@@ -244,6 +254,13 @@ public class MainActivity extends Activity {
 
         // Pass through to super if not handled
         return super.onMenuItemSelected(featureId, item);
+    }
+
+    private void notifyByEmail() {
+        if (clientResult != null){
+                client = new BrilleappenClient(this, url, username, password);
+            proposeAToast("email sendt");
+        }
     }
 
     /**
@@ -364,6 +381,14 @@ public class MainActivity extends Activity {
         }
     }
 
+    public void sendFileDone(BrilleappenClient client, JSONObject result){
+        clientResult = result;
+    }
+
+    public void notifyFileDone(BrilleappenClient client, JSONObject result){
+        clientResult = null;
+    }
+
     /**
      * List all files in f.
      *
@@ -398,10 +423,10 @@ public class MainActivity extends Activity {
             imagePaths.add(data.getStringExtra("path"));
             saveState();
             updateUI();
-            
+            clientResult = null;
             client = new BrilleappenClient(this, url, username, password);
 
-            client.execute(new File(data.getStringExtra("path")), false);
+            client.execute(EXECUTE_SENDFILE ,new File(data.getStringExtra("path")), false);
         }
         else if (requestCode == RECORD_VIDEO_CAPTURE_REQUEST && resultCode == RESULT_OK) {
             Log.i(TAG, "Received video: " + data.getStringExtra("path"));
@@ -430,7 +455,6 @@ public class MainActivity extends Activity {
                 captionTwitter = caption.getString("twitter");
                 captionInstagram = caption.getString("instagram");
 
-                client = new BrilleappenClient(this, url, username, password);
             }
             catch (JSONException e) {
                 Log.e(TAG, e.getMessage());

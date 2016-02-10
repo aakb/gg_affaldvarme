@@ -24,4 +24,5 @@
     <string name="abort_cancel">No</string>
     <string name="scan_patient">Scan adress</string>
     <string name="sending_report">Sending report</string>
+    <string name="notify">Notify by email</string>
 </resources>

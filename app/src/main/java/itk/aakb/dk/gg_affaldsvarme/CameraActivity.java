@@ -244,9 +244,9 @@ public class CameraActivity extends Activity implements GestureDetector.BaseList
      * Create a File for saving an image
      */
     private File getOutputImageFile() {
-        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), MainActivity.FILE_DIRECTORY);
+       // File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), MainActivity.FILE_DIRECTORY);
 
-       // File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM) + "/" + MainActivity.FILE_DIRECTORY, filePrefix );
+        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM) + "/" + MainActivity.FILE_DIRECTORY, filePrefix );
 
         Log.i(TAG, mediaStorageDir.getAbsolutePath());
 
