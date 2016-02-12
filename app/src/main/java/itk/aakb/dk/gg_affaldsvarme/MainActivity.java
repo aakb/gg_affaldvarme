@@ -258,8 +258,8 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
 
     private void notifyByEmail() {
         if (clientResult != null){
-                client = new BrilleappenClient(this, url, username, password);
-            proposeAToast("email sendt");
+            client = new BrilleappenClient(this, url, username, password);
+            client.notifyFile(clientResult);
         }
     }
 
@@ -387,6 +387,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
 
     public void notifyFileDone(BrilleappenClient client, JSONObject result){
         clientResult = null;
+        proposeAToast("Email sent");
     }
 
     /**
