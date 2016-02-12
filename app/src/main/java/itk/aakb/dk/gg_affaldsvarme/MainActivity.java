@@ -29,11 +29,11 @@ import java.util.Properties;
 public class MainActivity extends Activity implements BrilleappenClientListener {
     public static final String FILE_DIRECTORY = "Affaldvarme";
 
-    private static final String TAG = "affaldvarme main";
+    private static final String TAG = "affaldvarme_main";
     private static final int EXECUTE_SENDFILE = 1;
     private static final int TAKE_PICTURE_REQUEST = 101;
     private static final int RECORD_VIDEO_CAPTURE_REQUEST = 102;
-    private static final int SCAN_ADRESS_REQUEST = 103;
+    private static final int SCAN_ADDRESS_REQUEST = 103;
     private static final int RECORD_MEMO_REQUEST = 104;
     private static final int NOTIFY_REQUEST = 105;
     private static final String STATE_VIDEOS = "videos";
@@ -42,13 +42,13 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
 
     private static final String STATE_MEMOS = "memos";
     private static final String STATE_EVENT = "url";
-    private static final String STATE_ADRESS = "adress";
+    private static final String STATE_ADDRESS = "address";
 
     private ArrayList<String> imagePaths = new ArrayList<>();
     private ArrayList<String> videoPaths = new ArrayList<>();
     private ArrayList<String> memoPaths = new ArrayList<>();
 
-    String adress = null;
+    String address = null;
     private String url = null;
     BrilleappenClient client;
     private JSONObject clientResult;
@@ -66,7 +66,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
         savedInstanceState.putStringArrayList(STATE_VIDEOS, videoPaths);
         savedInstanceState.putStringArrayList(STATE_PICTURES, imagePaths);
         savedInstanceState.putStringArrayList(STATE_MEMOS, memoPaths);
-        savedInstanceState.putString(STATE_ADRESS, adress);
+        savedInstanceState.putString(STATE_ADDRESS, address);
         savedInstanceState.putString(STATE_EVENT, url);
 
         // Always call the superclass so it can save the view hierarchy state
@@ -94,6 +94,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
             InputStream inputStream = assetManager.open("config.properties");
             properties.load(inputStream);
         } catch (Exception e) {
+            proposeAToast("Cannot read configuration file");
             Log.e(TAG, e.getMessage());
             finish();
         }
@@ -110,7 +111,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
             imagePaths = savedInstanceState.getStringArrayList(STATE_PICTURES);
             videoPaths = savedInstanceState.getStringArrayList(STATE_VIDEOS);
             memoPaths = savedInstanceState.getStringArrayList(STATE_MEMOS);
-            adress = savedInstanceState.getString(STATE_ADRESS);
+            address = savedInstanceState.getString(STATE_ADDRESS);
             url = savedInstanceState.getString(STATE_EVENT);
 
         } else {
@@ -127,8 +128,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
             setContentView(R.layout.activity_layout);
 
             updateUI();
-        }
-        else {
+        } else {
             // Set the main activity view.
             setContentView(R.layout.activity_layout_init);
         }
@@ -148,8 +148,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
      * On create panel menu.
      *
      * @param featureId the feature id
-     * @param menu the menu to create
-     *
+     * @param menu      the menu to create
      * @return boolean
      */
     @Override
@@ -179,8 +178,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
     public boolean onCreateOptionsMenu(Menu menu) {
         if (url != null) {
             getMenuInflater().inflate(R.menu.main, menu);
-        }
-        else {
+        } else {
             getMenuInflater().inflate(R.menu.start, menu);
         }
 
@@ -193,8 +191,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
      * Processes the voice commands from the main menu.
      *
      * @param featureId the feature id
-     * @param item the selected menu item
-     *
+     * @param item      the selected menu item
      * @return boolean
      */
     @Override
@@ -238,7 +235,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
 
                 case R.id.scan_patient_menu_item:
                     Intent scanPatientIntent = new Intent(this, QRActivity.class);
-                    startActivityForResult(scanPatientIntent, SCAN_ADRESS_REQUEST);
+                    startActivityForResult(scanPatientIntent, SCAN_ADDRESS_REQUEST);
 
                     break;
                 case R.id.finish_menu_item:
@@ -257,7 +254,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
     }
 
     private void notifyByEmail() {
-        if (clientResult != null){
+        if (clientResult != null) {
             client = new BrilleappenClient(this, url, username, password);
             client.notifyFile(clientResult);
         }
@@ -265,11 +262,10 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
 
     /**
      * Launch the record memo intent.
-     *
      */
     private void recordMemo() {
         Intent intent = new Intent(this, MemoActivity.class);
-        intent.putExtra("FILE_PREFIX", adress);
+        intent.putExtra("FILE_PREFIX", address);
         startActivityForResult(intent, RECORD_MEMO_REQUEST);
     }
 
@@ -278,7 +274,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
      */
     private void takePicture() {
         Intent intent = new Intent(this, CameraActivity.class);
-        intent.putExtra("FILE_PREFIX", adress);
+        intent.putExtra("FILE_PREFIX", address);
         startActivityForResult(intent, TAKE_PICTURE_REQUEST);
     }
 
@@ -287,7 +283,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
      */
     private void recordVideo() {
         Intent intent = new Intent(this, VideoActivity.class);
-        intent.putExtra("FILE_PREFIX", adress);
+        intent.putExtra("FILE_PREFIX", address);
         startActivityForResult(intent, RECORD_VIDEO_CAPTURE_REQUEST);
     }
 
@@ -304,7 +300,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
         editor.putString(STATE_VIDEOS, serializedVideoPaths);
         editor.putString(STATE_PICTURES, serializedImagePaths);
         editor.putString(STATE_MEMOS, serializedMemoPaths);
-        editor.putString(STATE_ADRESS, adress);
+        editor.putString(STATE_ADDRESS, address);
         editor.putString(STATE_EVENT, url);
         editor.apply();
     }
@@ -325,7 +321,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
     private void restoreState() {
         SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
         url = sharedPref.getString(STATE_EVENT, null);
-        adress = sharedPref.getString(STATE_ADRESS, null);
+        address = sharedPref.getString(STATE_ADDRESS, null);
         String serializedVideoPaths = sharedPref.getString(STATE_VIDEOS, "[]");
         String serializedImagePaths = sharedPref.getString(STATE_PICTURES, "[]");
         String serializedMemoPaths = sharedPref.getString(STATE_MEMOS, "[]");
@@ -349,12 +345,11 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
             for (int i = 0; i < jsonArray.length(); i++) {
                 memoPaths.add(jsonArray.getString(i));
             }
-        }
-        catch (JSONException e) {
+        } catch (JSONException e) {
             // ignore
         }
 
-        Log.i(TAG, "Restored patient: " + adress);
+        Log.i(TAG, "Restored patient: " + address);
         Log.i(TAG, "Restored imagePaths: " + imagePaths);
         Log.i(TAG, "Restored videoPaths: " + videoPaths);
         Log.i(TAG, "Restored memoPaths: " + memoPaths);
@@ -375,19 +370,41 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
                     Log.e(TAG, "file: " + inFile + " was not deleted (continuing).");
                 }
             }
-        }
-        else {
+        } else {
             Log.i(TAG, "directory empty or does not exist.");
         }
     }
 
-    public void sendFileDone(BrilleappenClient client, JSONObject result){
-        clientResult = result;
+    private void sendFile(String path) {
+        sendFile(path, false);
     }
 
-    public void notifyFileDone(BrilleappenClient client, JSONObject result){
+    private void sendFile(String path, boolean notify) {
         clientResult = null;
-        proposeAToast("Email sent");
+        client = new BrilleappenClient(this, url, username, password);
+        client.sendFile(new File(path), notify);
+    }
+
+    public void sendFileDone(BrilleappenClient client, JSONObject result) {
+        Log.i(TAG, "sendFileDone");
+        clientResult = result;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                proposeAToast("File sent");
+            }
+        });
+    }
+
+    public void notifyFileDone(BrilleappenClient client, JSONObject result) {
+        Log.i(TAG, "notifyFileDone");
+        clientResult = null;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                proposeAToast("Email sent");
+            }
+        });
     }
 
     /**
@@ -418,54 +435,64 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
      */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == TAKE_PICTURE_REQUEST && resultCode == RESULT_OK) {
-            Log.i(TAG, "Received image: " + data.getStringExtra("path"));
+        if (resultCode == RESULT_OK) {
+            String path;
+            switch (requestCode) {
+                case TAKE_PICTURE_REQUEST:
+                    Log.i(TAG, "Received image: " + data.getStringExtra("path"));
 
-            imagePaths.add(data.getStringExtra("path"));
-            saveState();
-            updateUI();
-            clientResult = null;
-            client = new BrilleappenClient(this, url, username, password);
+                    path = data.getStringExtra("path");
+                    imagePaths.add(path);
+                    saveState();
+                    updateUI();
+                    sendFile(path);
+                    break;
+                case RECORD_VIDEO_CAPTURE_REQUEST:
+                    Log.i(TAG, "Received video: " + data.getStringExtra("path"));
 
-            client.execute(EXECUTE_SENDFILE ,new File(data.getStringExtra("path")), false);
-        }
-        else if (requestCode == RECORD_VIDEO_CAPTURE_REQUEST && resultCode == RESULT_OK) {
-            Log.i(TAG, "Received video: " + data.getStringExtra("path"));
+                    path = data.getStringExtra("path");
+                    videoPaths.add(path);
+                    saveState();
+                    updateUI();
+                    sendFile(path);
+                    break;
+                case RECORD_MEMO_REQUEST:
+                    Log.i(TAG, "Received memo: " + data.getStringExtra("path"));
 
-            videoPaths.add(data.getStringExtra("path"));
-            saveState();
-            updateUI();
-        } else if (requestCode == RECORD_MEMO_REQUEST && resultCode == RESULT_OK) {
-            Log.i(TAG, "Received memo: " + data.getStringExtra("path"));
+                    memoPaths.add(data.getStringExtra("path"));
+                    saveState();
+                    updateUI();
+                    break;
 
-            memoPaths.add(data.getStringExtra("path"));
-            saveState();
-            updateUI();
+                case SCAN_ADDRESS_REQUEST:
+                    Log.i(TAG, "Received url QR: " + data.getStringExtra("result"));
 
-        } else if (requestCode == SCAN_ADRESS_REQUEST && resultCode == RESULT_OK) {
-            Log.i(TAG, "Received url QR: " + data.getStringExtra("result"));
+                    String result = data.getStringExtra("result");
 
-            String result = data.getStringExtra("result");
+                    try {
+                        JSONObject jResult = new JSONObject(result);
+                        url = jResult.getString("url");
+                        address = jResult.getString("title");
 
-            try {
-                JSONObject jResult = new JSONObject(result);
-                JSONObject caption = jResult.getJSONObject("caption");
+                        if (jResult.has("caption")) {
+                            JSONObject caption = jResult.getJSONObject("caption");
 
-                url = jResult.getString("url");
-                adress = jResult.getString("title");
-                captionTwitter = caption.getString("twitter");
-                captionInstagram = caption.getString("instagram");
+                            captionTwitter = caption.getString("twitter");
+                            captionInstagram = caption.getString("instagram");
+                        }
+                    } catch (JSONException e) {
+                        Log.e(TAG, e.getMessage());
+                    }
 
+                    proposeAToast("Ready for: " + address);
+
+                    // Set the main activity view.
+                    setContentView(R.layout.activity_layout);
+
+                    saveState();
+                    updateUI();
+                    break;
             }
-            catch (JSONException e) {
-                Log.e(TAG, e.getMessage());
-            }
-
-            // Set the main activity view.
-            setContentView(R.layout.activity_layout);
-
-            saveState();
-            updateUI();
         }
 
         super.onActivityResult(requestCode, resultCode, data);
@@ -501,7 +528,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
         updateTextField(R.id.memoNumber, String.valueOf(memoPaths.size()), memoPaths.size() > 0 ? Color.WHITE : null);
         updateTextField(R.id.memoLabel, null, memoPaths.size() > 0 ? Color.WHITE : null);
 
-        updateTextField(R.id.patientIdentifier, adress, adress != null ? Color.WHITE : null);
+        updateTextField(R.id.patientIdentifier, address, address != null ? Color.WHITE : null);
     }
 
     /**
