@@ -21,8 +21,6 @@ import java.net.URLConnection;
 public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
     private static final String TAG = "bibliotek Brilleappen";
 
-    private static final int EXECUTE_SENDFILE = 1;
-    private static final int EXECUTE_NOTIFY = 2;
     private String url;
     private String username;
     private String password;

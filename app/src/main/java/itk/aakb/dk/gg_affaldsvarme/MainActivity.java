@@ -215,7 +215,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
 
     /**
      * On menu item selected.
-     * <p/>
+     * <p>
      * Processes the voice commands from the main menu.
      *
      * @param featureId the feature id
@@ -253,7 +253,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
                     break;
 
                 case R.id.scan_new_adress_menu_item:
-                    Log.i(TAG,"menu: Scan new adress");
+                    Log.i(TAG, "menu: Scan new adress");
                     deleteState();
                     clearMediaArrays();
                     Intent scanNewAdressIntent = new Intent(this, QRActivity.class);
@@ -425,7 +425,6 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
     }
 
 
-
     /**
      * List all files in f.
      *
@@ -449,7 +448,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
 
     /**
      * On activity result.
-     * <p/>
+     * <p>
      * When an intent returns, it is intercepted in this method.
      */
     @Override
@@ -521,7 +520,8 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
 
     /**
      * Update a ui text view.
-     * @param id id of the text view
+     *
+     * @param id    id of the text view
      * @param value value to assign
      * @param color the color to set for the text field
      */
@@ -553,7 +553,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
     }
 
 
-    private void clearMediaArrays(){
+    private void clearMediaArrays() {
         imagePaths.clear();
         videoPaths.clear();
         memoPaths.clear();
@@ -606,26 +606,24 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
                     updateUI();
                 }
             });
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Log.e(TAG, e.getMessage());
         }
     }
 
 
-
-
     @Override
     public void sendFileDone(BrilleappenClient client, JSONObject result) {
-    Log.i(TAG, "sendFileDone");
-    clientResult = result;
-    runOnUiThread(new Runnable() {
-        @Override
-        public void run() {
-            proposeAToast("File sent");
-        }
-    });
-}
+        Log.i(TAG, "sendFileDone");
+        clientResult = result;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                proposeAToast("File sent");
+            }
+        });
+    }
+
     @Override
     public void notifyFileDone(BrilleappenClient client, JSONObject result) {
         Log.i(TAG, "notifyFileDone");
