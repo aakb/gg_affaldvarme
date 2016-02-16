@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Use the constants defined in the ContextualMenus.Command enum-->
+    <group
+        android:id="@+id/main_menu_group_main">
     <item
         android:id="@+id/take_image_menu_item"
         android:title="@string/take_image" />
@@ -14,6 +16,28 @@
         android:id="@+id/notify_menu_item"
         android:title="@string/notify" />
     <item
+        android:id="@+id/scan_new_adress_menu_item"
+        android:title="@string/scan_new_adress" />
+    <item
         android:id="@+id/finish_menu_item"
         android:title="@string/finish" />
+    </group>
+    <group
+        android:id="@+id/main_menu_group_start">
+        <item
+            android:id="@+id/scan_patient_menu_item"
+            android:title="@string/scan_patient" />
+        <item
+            android:id="@+id/cancel_menu_item"
+            android:title="@string/cancel">
+            <menu>
+                <item
+                    android:id="@+id/confirm_cancel"
+                    android:title="@string/confirm_cancel" />
+                <item
+                    android:id="@+id/abort_cancel"
+                    android:title="@string/abort_cancel" />
+            </menu>
+        </item>
+    </group>
 </menu>

@@ -11,10 +11,14 @@ import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
 import android.view.Window;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.glass.touchpad.Gesture;
+import com.google.android.glass.touchpad.GestureDetector;
 import com.google.android.glass.view.WindowUtils;
 
 import org.json.JSONArray;
@@ -26,20 +30,16 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Properties;
 
-public class MainActivity extends Activity implements BrilleappenClientListener {
+public class MainActivity extends Activity implements BrilleappenClientListener, GestureDetector.BaseListener {
     public static final String FILE_DIRECTORY = "Affaldvarme";
 
     private static final String TAG = "affaldvarme_main";
-    private static final int EXECUTE_SENDFILE = 1;
     private static final int TAKE_PICTURE_REQUEST = 101;
     private static final int RECORD_VIDEO_CAPTURE_REQUEST = 102;
     private static final int SCAN_ADDRESS_REQUEST = 103;
     private static final int RECORD_MEMO_REQUEST = 104;
-    private static final int NOTIFY_REQUEST = 105;
     private static final String STATE_VIDEOS = "videos";
     private static final String STATE_PICTURES = "pictures";
-
-
     private static final String STATE_MEMOS = "memos";
     private static final String STATE_EVENT = "url";
     private static final String STATE_ADDRESS = "address";
@@ -48,8 +48,12 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
     private ArrayList<String> videoPaths = new ArrayList<>();
     private ArrayList<String> memoPaths = new ArrayList<>();
 
-    String address = null;
+    private static final int MENU_MAIN = 1;
+    private static final int MENU_START = 0;
+
+    private String address = null;
     private String url = null;
+    String adressUrl;
     BrilleappenClient client;
     private JSONObject clientResult;
     private String username;
@@ -57,6 +61,10 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
     String captionTwitter;
     String captionInstagram;
 
+    int selectedMenu = 0;
+
+    private GestureDetector gestureDetector;
+    private Menu panelMenu;
 
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
@@ -122,13 +130,14 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
         }
 
         if (url != null) {
-            client = new BrilleappenClient(this, url, username, password);
+            selectedMenu = MENU_MAIN;
 
             // Set the main activity view.
             setContentView(R.layout.activity_layout);
 
             updateUI();
         } else {
+            selectedMenu = MENU_START;
             // Set the main activity view.
             setContentView(R.layout.activity_layout_init);
         }
@@ -142,6 +151,22 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
         getDirectoryListing(f);
 
         Log.i(TAG, "------------");
+
+        gestureDetector = new GestureDetector(this).setBaseListener(this);
+    }
+
+
+    public boolean onGenericMotionEvent(MotionEvent event) {
+        return gestureDetector.onMotionEvent(event);
+    }
+
+    public boolean onGesture(Gesture gesture) {
+        if (Gesture.TAP.equals(gesture)) {
+            openOptionsMenu();
+
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -155,11 +180,12 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
     public boolean onCreatePanelMenu(int featureId, Menu menu) {
         if (featureId == WindowUtils.FEATURE_VOICE_COMMANDS ||
                 featureId == Window.FEATURE_OPTIONS_PANEL) {
-            if (url != null) {
-                getMenuInflater().inflate(R.menu.main, menu);
-            } else {
-                getMenuInflater().inflate(R.menu.start, menu);
-            }
+
+            getMenuInflater().inflate(R.menu.main, menu);
+
+            panelMenu = menu;
+
+            updatePanelMenu();
 
             return true;
         }
@@ -168,21 +194,23 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
         return super.onCreatePanelMenu(featureId, menu);
     }
 
-    /**
-     * On create options menu.
-     *
-     * @param menu The menu to create
-     * @return boolean
-     */
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        if (url != null) {
-            getMenuInflater().inflate(R.menu.main, menu);
-        } else {
-            getMenuInflater().inflate(R.menu.start, menu);
+    public boolean onPreparePanel(int featureId, View view, Menu menu) {
+        if (featureId == WindowUtils.FEATURE_VOICE_COMMANDS ||
+                featureId == Window.FEATURE_OPTIONS_PANEL) {
+
+            updatePanelMenu();
         }
 
-        return true;
+        return super.onPreparePanel(featureId, view, menu);
+    }
+
+    /**
+     * Update what menu is displayed.
+     */
+    public void updatePanelMenu() {
+        panelMenu.setGroupVisible(R.id.main_menu_group_main, selectedMenu == MENU_MAIN);
+        panelMenu.setGroupVisible(R.id.main_menu_group_start, selectedMenu == MENU_START);
     }
 
     /**
@@ -221,6 +249,16 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
                     Log.i(TAG, "menu: Notify by email");
 
                     notifyByEmail();
+
+                    break;
+
+                case R.id.scan_new_adress_menu_item:
+                    Log.i(TAG,"menu: Scan new adress");
+                    deleteState();
+                    clearMediaArrays();
+                    Intent scanNewAdressIntent = new Intent(this, QRActivity.class);
+                    startActivityForResult(scanNewAdressIntent, SCAN_ADDRESS_REQUEST);
+                    updateUI();
 
                     break;
                 case R.id.confirm_cancel:
@@ -349,6 +387,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
             // ignore
         }
 
+        Log.i(TAG, "Restored url: " + url);
         Log.i(TAG, "Restored patient: " + address);
         Log.i(TAG, "Restored imagePaths: " + imagePaths);
         Log.i(TAG, "Restored videoPaths: " + videoPaths);
@@ -385,27 +424,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
         client.sendFile(new File(path), notify);
     }
 
-    public void sendFileDone(BrilleappenClient client, JSONObject result) {
-        Log.i(TAG, "sendFileDone");
-        clientResult = result;
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                proposeAToast("File sent");
-            }
-        });
-    }
 
-    public void notifyFileDone(BrilleappenClient client, JSONObject result) {
-        Log.i(TAG, "notifyFileDone");
-        clientResult = null;
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                proposeAToast("Email sent");
-            }
-        });
-    }
 
     /**
      * List all files in f.
@@ -441,6 +460,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
                 case TAKE_PICTURE_REQUEST:
                     Log.i(TAG, "Received image: " + data.getStringExtra("path"));
 
+                    boolean instaShare = data.getBooleanExtra("instaShare", false);
                     path = data.getStringExtra("path");
                     imagePaths.add(path);
                     saveState();
@@ -471,8 +491,9 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
 
                     try {
                         JSONObject jResult = new JSONObject(result);
-                        url = jResult.getString("url");
-                        address = jResult.getString("title");
+                        adressUrl = jResult.getString("url");
+                        client = new BrilleappenClient(this, adressUrl, username, password);
+                        client.execute("getEvent");
 
                         if (jResult.has("caption")) {
                             JSONObject caption = jResult.getJSONObject("caption");
@@ -484,13 +505,13 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
                         Log.e(TAG, e.getMessage());
                     }
 
-                    proposeAToast("Ready for: " + address);
+                    //proposeAToast("Ready for: " + address);
 
                     // Set the main activity view.
-                    setContentView(R.layout.activity_layout);
+                    //setContentView(R.layout.activity_layout);
 
-                    saveState();
-                    updateUI();
+                    //saveState();
+                    //updateUI();
                     break;
             }
         }
@@ -531,6 +552,13 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
         updateTextField(R.id.patientIdentifier, address, address != null ? Color.WHITE : null);
     }
 
+
+    private void clearMediaArrays(){
+        imagePaths.clear();
+        videoPaths.clear();
+        memoPaths.clear();
+    }
+
     /**
      * Send a toast
      *
@@ -538,5 +566,75 @@ public class MainActivity extends Activity implements BrilleappenClientListener 
      */
     public void proposeAToast(String message) {
         Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
+    }
+
+
+    @Override
+    public void getEventDone(BrilleappenClient client, JSONObject result) {
+        try {
+            Log.i(TAG, "getEventDone" + result.toString());
+
+            if (result.getJSONArray("field_gg_instagram_caption").length() > 0) {
+                captionInstagram = result.getJSONArray("field_gg_instagram_caption").getJSONObject(0).getString("value");
+            }
+
+            if (result.getJSONArray("field_gg_twitter_caption").length() > 0) {
+                captionTwitter = result.getJSONArray("field_gg_twitter_caption").getJSONObject(0).getString("value");
+            }
+
+            if (result.getJSONArray("title").length() > 0) {
+                address = result.getJSONArray("title").getJSONObject(0).getString("value");
+            }
+
+            url = result.getString("add_file_url");
+
+            saveState();
+
+            // Update the UI
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (url != null) {
+                        selectedMenu = MENU_MAIN;
+
+                        updatePanelMenu();
+
+                        // Set the main activity view.
+                        setContentView(R.layout.activity_layout);
+                    }
+
+                    updateUI();
+                }
+            });
+        }
+        catch (Exception e) {
+            Log.e(TAG, e.getMessage());
+        }
+    }
+
+
+
+
+    @Override
+    public void sendFileDone(BrilleappenClient client, JSONObject result) {
+    Log.i(TAG, "sendFileDone");
+    clientResult = result;
+    runOnUiThread(new Runnable() {
+        @Override
+        public void run() {
+            proposeAToast("File sent");
+        }
+    });
+}
+    @Override
+    public void notifyFileDone(BrilleappenClient client, JSONObject result) {
+        Log.i(TAG, "notifyFileDone");
+        clientResult = null;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                proposeAToast("Email sent");
+            }
+        });
     }
 }

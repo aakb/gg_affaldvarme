@@ -4,6 +4,7 @@ import android.os.AsyncTask;
 import android.util.Base64;
 import android.util.Log;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -25,25 +26,28 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
     private String url;
     private String username;
     private String password;
-    private BrilleappenClientListener clientListener;
+    private BrilleappenClientListener listener;
 
-    public BrilleappenClient(BrilleappenClientListener clientListener, String url, String username, String password) {
+    public BrilleappenClient(BrilleappenClientListener listener, String url, String username, String password) {
         this.url = url.replaceFirst("/+$", "");
         this.username = username;
         this.password = password;
-        this.clientListener = clientListener;
+        this.listener = listener;
     }
 
     protected Boolean doInBackground(Object... args) {
-        int action = (int)args[0];
+        String action = (String)args[0];
 
         switch (action) {
-            case EXECUTE_SENDFILE:
+            case "getEvent":
+                getEvent();
+                break;
+            case "sendFile":
                 File file = (File) args[1];
                 boolean share = (boolean) args[2];
                 _sendFile(file, share);
                 break;
-            case EXECUTE_NOTIFY:
+            case "notify":
                 JSONObject result = (JSONObject)args[1];
                 _notifyFile(result);
                 break;
@@ -56,6 +60,36 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
         // TODO: check this.exception
         // TODO: do something with the feed
     }
+
+    public void getEvent() {
+        try {
+            URL url = new URL(this.url);
+            HttpURLConnection connection = (HttpURLConnection)url.openConnection();
+
+            String authString = username + ":" + password;
+            String authStringEnc = Base64.encodeToString(authString.getBytes(), Base64.DEFAULT);
+
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Authorization", "Basic " + authStringEnc);
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+            String response = getResponse(connection);
+
+            JSONObject result = null;
+            try {
+                result = new JSONObject(response);
+            }
+            catch (JSONException e) {
+                Log.e(TAG, e.getMessage());
+            }
+
+            listener.getEventDone(this, result);
+        }
+        catch (Exception e) {
+            Log.e(TAG, e.getMessage());
+        }
+    }
+
 
     private void _notifyFile(JSONObject clientResult) {
         try {
@@ -79,7 +113,7 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
 
             JSONObject result = new JSONObject(response);
 
-            clientListener.notifyFileDone(this, result);
+            listener.notifyFileDone(this, result);
 
             Log.i(TAG, serverResponseCode + ": " + response);
         } catch (Throwable t) {
@@ -87,11 +121,11 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
         }
     }
     public void notifyFile(JSONObject result) {
-        execute(EXECUTE_NOTIFY, result);
+        execute("notify", result);
     }
 
     public void sendFile(File file, boolean share) {
-        execute(EXECUTE_SENDFILE, file, share);
+        execute("sendFile", file, share);
     }
 
     private void _sendFile(File file, boolean share) {
@@ -123,7 +157,7 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
 
             JSONObject result = new JSONObject(response);
 
-            clientListener.sendFileDone(this, result);
+            listener.sendFileDone(this, result);
 
             Log.i(TAG, serverResponseCode + ": " + response);
         } catch (Throwable t) {
