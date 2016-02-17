@@ -1,7 +1,3 @@
 # gg_affaldvarme
-Google Glass saarpleje prototype
+Google Glass AffaldVarme prototype
 
-
-## Mail proxy
-
-See [webservice/README.md](webservice/README.md).

@@ -17,7 +17,7 @@
             android:title="@string/notify" />
         <item
             android:id="@+id/scan_new_adress_menu_item"
-            android:title="@string/scan_new_adress" />
+            android:title="@string/scan_new_address" />
         <item
             android:id="@+id/finish_menu_item"
             android:title="@string/finish" />
@@ -25,8 +25,8 @@
     <group
         android:id="@+id/main_menu_group_start">
         <item
-            android:id="@+id/scan_patient_menu_item"
-            android:title="@string/scan_patient" />
+            android:id="@+id/scan_address_menu_item"
+            android:title="@string/scan_address" />
         <item
             android:id="@+id/cancel_menu_item"
             android:title="@string/cancel">

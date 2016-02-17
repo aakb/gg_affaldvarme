@@ -3,7 +3,7 @@
     <string name="countdown_default">...</string>
     <string name="progress_image">Images</string>
     <string name="progress_videos">Videos</string>
-    <string name="patient">Adress: </string>
+    <string name="address">Address: </string>
     <string name="receiver">Email: </string>
     <string name="get_started">Open menu to get started</string>
     <string name="no_media_files">No media files</string>
@@ -16,14 +16,14 @@
 
     <string name="voice_command_start_program">Start digging</string>
     <string name="start_memo">Dictate memo</string>
-    <string name="finish">Finish report</string>
+    <string name="finish">Finish address</string>
     <string name="take_image">Take image</string>
     <string name="record_video">Record video</string>
     <string name="cancel">Remove all files and exit</string>
     <string name="confirm_cancel">Yes</string>
     <string name="abort_cancel">No</string>
-    <string name="scan_patient">Scan adress</string>
-    <string name="scan_new_adress">Scan new adress</string>
+    <string name="scan_address">Scan address</string>
+    <string name="scan_new_address">Scan new address</string>
     <string name="sending_report">Sending report</string>
     <string name="notify">Notify by email</string>
 </resources>

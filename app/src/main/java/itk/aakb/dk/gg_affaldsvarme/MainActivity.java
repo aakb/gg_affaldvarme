@@ -271,9 +271,9 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
 
                     break;
 
-                case R.id.scan_patient_menu_item:
-                    Intent scanPatientIntent = new Intent(this, QRActivity.class);
-                    startActivityForResult(scanPatientIntent, SCAN_ADDRESS_REQUEST);
+                case R.id.scan_address_menu_item:
+                    Intent scanAddressIntent = new Intent(this, QRActivity.class);
+                    startActivityForResult(scanAddressIntent, SCAN_ADDRESS_REQUEST);
 
                     break;
                 case R.id.finish_menu_item:
@@ -388,7 +388,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
         }
 
         Log.i(TAG, "Restored url: " + url);
-        Log.i(TAG, "Restored patient: " + address);
+        Log.i(TAG, "Restored address: " + address);
         Log.i(TAG, "Restored imagePaths: " + imagePaths);
         Log.i(TAG, "Restored videoPaths: " + videoPaths);
         Log.i(TAG, "Restored memoPaths: " + memoPaths);
@@ -549,7 +549,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
         updateTextField(R.id.memoNumber, String.valueOf(memoPaths.size()), memoPaths.size() > 0 ? Color.WHITE : null);
         updateTextField(R.id.memoLabel, null, memoPaths.size() > 0 ? Color.WHITE : null);
 
-        updateTextField(R.id.patientIdentifier, address, address != null ? Color.WHITE : null);
+        updateTextField(R.id.addressIdentifier, address, address != null ? Color.WHITE : null);
     }
 
 
