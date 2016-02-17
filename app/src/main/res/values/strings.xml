@@ -26,4 +26,6 @@
     <string name="scan_new_address">Scan new address</string>
     <string name="sending_report">Sending report</string>
     <string name="notify">Notify by email</string>
+    <string name="photo_help_text">Tap to take picture</string>
+    <string name="video_help_text">Tap to stop recording</string>
 </resources>

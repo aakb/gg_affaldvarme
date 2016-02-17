@@ -58,7 +58,7 @@ public class CameraActivity extends Activity implements GestureDetector.BaseList
 
         textField = (TextView) findViewById(R.id.text_camera_helptext);
 
-        textField.setText("Tap to take picture");
+        textField.setText(R.string.photo_help_text);
 
 
         if (!checkCameraHardware(this)) {
