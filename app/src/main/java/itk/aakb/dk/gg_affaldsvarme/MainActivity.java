@@ -491,8 +491,10 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
                     try {
                         JSONObject jResult = new JSONObject(result);
                         adressUrl = jResult.getString("url");
-                        client = new BrilleappenClient(this, adressUrl, username, password);
-                        client.execute("getEvent");
+
+                        selectedMenu = MENU_MAIN;
+
+                        updatePanelMenu();
 
                         if (jResult.has("caption")) {
                             JSONObject caption = jResult.getJSONObject("caption");
@@ -500,17 +502,13 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
                             captionTwitter = caption.getString("twitter");
                             captionInstagram = caption.getString("instagram");
                         }
+
+                        client = new BrilleappenClient(this, adressUrl, username, password);
+                        client.execute("getEvent");
                     } catch (JSONException e) {
                         Log.e(TAG, e.getMessage());
                     }
 
-                    //proposeAToast("Ready for: " + address);
-
-                    // Set the main activity view.
-                    //setContentView(R.layout.activity_layout);
-
-                    //saveState();
-                    //updateUI();
                     break;
             }
         }
@@ -595,10 +593,6 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
                 @Override
                 public void run() {
                     if (url != null) {
-                        selectedMenu = MENU_MAIN;
-
-                        updatePanelMenu();
-
                         // Set the main activity view.
                         setContentView(R.layout.activity_layout);
                     }
