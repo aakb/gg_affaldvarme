@@ -1,4 +1,4 @@
-package itk.aakb.dk.gg_affaldsvarme;
+package dk.aakb.itk.gg_affaldsvarme;
 
 import org.json.JSONObject;
 
