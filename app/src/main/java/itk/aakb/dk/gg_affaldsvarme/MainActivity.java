@@ -28,6 +28,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Properties;
 
 public class MainActivity extends Activity implements BrilleappenClientListener, GestureDetector.BaseListener {
@@ -52,8 +53,8 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
     private static final int MENU_START = 0;
 
     private String address = null;
-    private String url = null;
-    String adressUrl;
+    private String addFileUrl = null;
+    String addressUrl;
     BrilleappenClient client;
     private JSONObject clientResult;
     private String username;
@@ -75,7 +76,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
         savedInstanceState.putStringArrayList(STATE_PICTURES, imagePaths);
         savedInstanceState.putStringArrayList(STATE_MEMOS, memoPaths);
         savedInstanceState.putString(STATE_ADDRESS, address);
-        savedInstanceState.putString(STATE_EVENT, url);
+        savedInstanceState.putString(STATE_EVENT, addFileUrl);
 
         // Always call the superclass so it can save the view hierarchy state
         super.onSaveInstanceState(savedInstanceState);
@@ -120,7 +121,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
             videoPaths = savedInstanceState.getStringArrayList(STATE_VIDEOS);
             memoPaths = savedInstanceState.getStringArrayList(STATE_MEMOS);
             address = savedInstanceState.getString(STATE_ADDRESS);
-            url = savedInstanceState.getString(STATE_EVENT);
+            addFileUrl = savedInstanceState.getString(STATE_EVENT);
 
         } else {
             Log.i(TAG, "Restoring state");
@@ -129,7 +130,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
             restoreState();
         }
 
-        if (url != null) {
+        if (addFileUrl != null) {
             selectedMenu = MENU_MAIN;
 
             // Set the main activity view.
@@ -281,6 +282,11 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
                     finish();
 
                     break;
+
+                case R.id.create_breakdown_menu_item:
+                    createBreakdown();
+                    break;
+
                 default:
                     return true;
             }
@@ -293,7 +299,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
 
     private void notifyByEmail() {
         if (clientResult != null) {
-            client = new BrilleappenClient(this, url, username, password);
+            client = new BrilleappenClient(this, addFileUrl, username, password);
             client.notifyFile(clientResult);
         }
     }
@@ -339,7 +345,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
         editor.putString(STATE_PICTURES, serializedImagePaths);
         editor.putString(STATE_MEMOS, serializedMemoPaths);
         editor.putString(STATE_ADDRESS, address);
-        editor.putString(STATE_EVENT, url);
+        editor.putString(STATE_EVENT, addFileUrl);
         editor.apply();
     }
 
@@ -358,7 +364,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
      */
     private void restoreState() {
         SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
-        url = sharedPref.getString(STATE_EVENT, null);
+        addFileUrl = sharedPref.getString(STATE_EVENT, null);
         address = sharedPref.getString(STATE_ADDRESS, null);
         String serializedVideoPaths = sharedPref.getString(STATE_VIDEOS, "[]");
         String serializedImagePaths = sharedPref.getString(STATE_PICTURES, "[]");
@@ -387,7 +393,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
             // ignore
         }
 
-        Log.i(TAG, "Restored url: " + url);
+        Log.i(TAG, "Restored url: " + addFileUrl);
         Log.i(TAG, "Restored address: " + address);
         Log.i(TAG, "Restored imagePaths: " + imagePaths);
         Log.i(TAG, "Restored videoPaths: " + videoPaths);
@@ -420,7 +426,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
 
     private void sendFile(String path, boolean notify) {
         clientResult = null;
-        client = new BrilleappenClient(this, url, username, password);
+        client = new BrilleappenClient(this, addFileUrl, username, password);
         client.sendFile(new File(path), notify);
     }
 
@@ -490,7 +496,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
 
                     try {
                         JSONObject jResult = new JSONObject(result);
-                        adressUrl = jResult.getString("url");
+                        addressUrl = jResult.getString("url");
 
                         selectedMenu = MENU_MAIN;
 
@@ -503,8 +509,8 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
                             captionInstagram = caption.getString("instagram");
                         }
 
-                        client = new BrilleappenClient(this, adressUrl, username, password);
-                        client.execute("getEvent");
+                        client = new BrilleappenClient(this, addressUrl, username, password);
+                        client.getEvent();
                     } catch (JSONException e) {
                         Log.e(TAG, e.getMessage());
                     }
@@ -584,7 +590,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
                 address = result.getJSONArray("title").getJSONObject(0).getString("value");
             }
 
-            url = result.getString("add_file_url");
+            addFileUrl = result.getString("add_file_url");
 
             saveState();
 
@@ -592,7 +598,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    if (url != null) {
+                    if (addFileUrl != null) {
                         // Set the main activity view.
                         setContentView(R.layout.activity_layout);
                     }
@@ -630,10 +636,29 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
         });
     }
 
+    private void createBreakdown() {
+        String url = "http://teknikogmiljoe.hulk.aakb.dk/brilleappen/event/create";
+        client = new BrilleappenClient(this, url, username, password);
+        client.createEvent("Breakdown @" + new Date().toString(), "breakdown");
+    }
+
     @Override
     public void createEventDone(BrilleappenClient client, JSONObject result) {
         Log.i(TAG, "createEventDone");
         clientResult = result;
+        try {
+            addressUrl = result.getString("url");
+
+            selectedMenu = MENU_MAIN;
+
+            updatePanelMenu();
+
+            client = new BrilleappenClient(this, addressUrl, username, password);
+            client.getEvent();
+        } catch (Exception ex) {
+            Log.e(TAG, ex.getMessage(), ex);
+        }
+
         runOnUiThread(new Runnable() {
             @Override
             public void run() {

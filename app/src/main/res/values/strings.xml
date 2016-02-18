@@ -24,6 +24,7 @@
     <string name="abort_cancel">No</string>
     <string name="scan_address">Scan address</string>
     <string name="scan_new_address">Scan new address</string>
+    <string name="create_breakdown">Create breakdown</string>
     <string name="sending_report">Sending report</string>
     <string name="notify">Notify by email</string>
     <string name="photo_help_text">Tap to take picture</string>

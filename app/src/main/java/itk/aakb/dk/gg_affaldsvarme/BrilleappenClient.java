@@ -54,22 +54,22 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
                 double lat = (double)args[3];
                 double lng = (double)args[4];
                 _createEvent(title, type, lat, lng);
-                break;
+                return true;
             case GET_EVENT:
                 _getEvent();
-                break;
+                return true;
             case SEND_FILE:
                 File file = (File)args[1];
                 boolean share = (boolean)args[2];
                 _sendFile(file, share);
-                break;
+                return true;
             case NOTIFY_FILE:
                 JSONObject result = (JSONObject)args[1];
                 String[] types = (String[])args[2];
                 _notifyFile(result, types);
-                break;
+                return true;
         }
-        return true;
+        return false;
     }
 
     public void createEvent(String title, String type, double lat, double lng) {
