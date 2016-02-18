@@ -1,7 +1,9 @@
 package itk.aakb.dk.gg_affaldsvarme;
 
+
 import android.app.Application;
 import android.test.ApplicationTestCase;
+import android.test.suitebuilder.annotation.Suppress;
 
 import org.json.JSONObject;
 
@@ -10,6 +12,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Date;
 import java.util.concurrent.CountDownLatch;
 
 public class BrilleappenClientTest extends ApplicationTestCase<Application> implements BrilleappenClientListener {
@@ -20,6 +23,27 @@ public class BrilleappenClientTest extends ApplicationTestCase<Application> impl
     CountDownLatch signal;
     BrilleappenClient client;
     JSONObject clientResult;
+
+    @Suppress
+    public void testCreateEvent() {
+        try {
+            client = createClient("http://brilleappen.hulk.aakb.dk/brilleappen/event/create");
+            clientResult = null;
+
+            signal = new CountDownLatch(1);
+
+            client.createEvent(new Date().toString(), "test");
+
+            signal.await();
+        } catch (Throwable t) {
+            assertFalse(true);
+        }
+    }
+
+    public void createEventDone(BrilleappenClient client, JSONObject result) {
+        assertNotNull(result);
+        assertTrue(result.has("url"));
+    }
 
     public void testSendFile() {
         File file = new File(getContext().getCacheDir(), "test.png");
@@ -67,17 +91,37 @@ public class BrilleappenClientTest extends ApplicationTestCase<Application> impl
             signal = new CountDownLatch(1);
 
             client = createClient();
+
             client.notifyFile(clientResult);
 
             signal.await();
 
         } catch (Throwable t) {
-            assertFalse(true);
+            fail(t.getMessage());
+        }
+    }
+
+    @Suppress
+    private void testNotifyFile(JSONObject result) {
+        try {
+            client = createClient();
+            clientResult = null;
+
+            signal = new CountDownLatch(1);
+
+            client.notifyFile(result, null);
+
+            signal.await();
+        } catch (Throwable t) {
+            fail(t.getMessage());
         }
     }
 
     private BrilleappenClient createClient() {
-        String url = "http://teknikogmiljoe.hulk.aakb.dk/brilleappen/event/a1cae76d-288c-41a5-9e00-d961f7f26c00/file";
+        return createClient("http://brilleappen.hulk.aakb.dk/brilleappen/event/21d59ce2-fa69-426a-bd06-6e6c9edee086/file");
+    }
+
+    private BrilleappenClient createClient(String url) {
         String username = "rest";
         String password = "rest";
 
@@ -88,6 +132,14 @@ public class BrilleappenClientTest extends ApplicationTestCase<Application> impl
     public void sendFileDone(BrilleappenClient client, JSONObject result) {
         assertTrue(result.has("notify_url"));
         clientResult = result;
+        signal.countDown();
+
+        //testNotifyFile(result);
+    }
+
+    @Override
+    public void getEventDone(BrilleappenClient client, JSONObject result) {
+        assertTrue(result.has("event"));
         signal.countDown();
     }
 

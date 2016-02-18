@@ -629,4 +629,16 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
             }
         });
     }
+
+    @Override
+    public void createEventDone(BrilleappenClient client, JSONObject result) {
+        Log.i(TAG, "createEventDone");
+        clientResult = result;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                proposeAToast("Event created");
+            }
+        });
+    }
 }
