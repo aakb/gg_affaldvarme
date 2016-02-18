@@ -1,4 +1,4 @@
-package itk.aakb.dk.gg_affaldsvarme;
+package dk.aakb.itk.gg_affaldsvarme;
 
 import android.app.Activity;
 import android.content.Intent;
