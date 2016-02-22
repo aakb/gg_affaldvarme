@@ -182,6 +182,7 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
             URL url = getUrl(this.url, query);
 
             HttpURLConnection connection = (HttpURLConnection)url.openConnection();
+            connection.setFixedLengthStreamingMode(file.length());
 
             String authString = username + ":" + password;
             String authStringEnc = Base64.encodeToString(authString.getBytes(), Base64.DEFAULT);
