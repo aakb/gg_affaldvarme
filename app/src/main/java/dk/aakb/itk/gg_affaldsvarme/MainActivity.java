@@ -240,12 +240,6 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
                     recordVideo();
 
                     break;
-                case R.id.record_memo_menu_item:
-                    Log.i(TAG, "menu: record memo");
-
-                    recordMemo();
-
-                    break;
                 case R.id.notify_menu_item:
                     Log.i(TAG, "menu: Notify by email");
 
