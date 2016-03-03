@@ -486,8 +486,8 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
      * Update the UI.
      */
     private void updateUI() {
-        updateTextField(R.id.imageNumber, String.valueOf(numberOfFiles), numberOfFiles != 0 ? Color.WHITE : null);
-        updateTextField(R.id.imageLabel, null, numberOfFiles > 0 ? Color.WHITE : null);
+        updateTextField(R.id.filesNumber, String.valueOf(numberOfFiles), numberOfFiles != 0 ? Color.WHITE : null);
+        updateTextField(R.id.filesLabel, null, numberOfFiles > 0 ? Color.WHITE : null);
 
         updateTextField(R.id.addressIdentifier, address, address != null ? Color.WHITE : null);
     }

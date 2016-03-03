@@ -31,4 +31,5 @@
     <string name="qr_code_scanned">QR code scanned</string>
     <string name="scanning_qr_code">Scanning QR code</string>
     <string name="no_camera">The camera is not available</string>
+    <string name="files_label">Files</string>
 </resources>
