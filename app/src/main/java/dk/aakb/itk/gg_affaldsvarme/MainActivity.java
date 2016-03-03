@@ -76,21 +76,6 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     private GestureDetector gestureDetector;
     private Menu panelMenu;
 
-    @Override
-    public void onSaveInstanceState(Bundle savedInstanceState) {
-        Log.i(TAG, "onSaveInstanceState");
-
-        // Save the user's current game state
-        savedInstanceState.putStringArrayList(STATE_VIDEOS, videoPaths);
-        savedInstanceState.putStringArrayList(STATE_PICTURES, imagePaths);
-        savedInstanceState.putStringArrayList(STATE_MEMOS, memoPaths);
-        savedInstanceState.putString(STATE_ADDRESS, address);
-        savedInstanceState.putString(STATE_EVENT, addFileUrl);
-
-        // Always call the superclass so it can save the view hierarchy state
-        super.onSaveInstanceState(savedInstanceState);
-    }
-
     /**
      * On create.
      *
@@ -120,24 +105,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
         this.username = properties.getProperty("Username");
         this.password = properties.getProperty("Password");
 
-
-        // Check whether we're recreating a previously destroyed instance
-        if (savedInstanceState != null) {
-            Log.i(TAG, "Restoring savedInstance");
-
-            // Restore state members from saved instance
-            imagePaths = savedInstanceState.getStringArrayList(STATE_PICTURES);
-            videoPaths = savedInstanceState.getStringArrayList(STATE_VIDEOS);
-            memoPaths = savedInstanceState.getStringArrayList(STATE_MEMOS);
-            address = savedInstanceState.getString(STATE_ADDRESS);
-            addFileUrl = savedInstanceState.getString(STATE_EVENT);
-
-        } else {
-            Log.i(TAG, "Restoring state");
-
-            // Probably initialize members with default values for a new instance
-            restoreState();
-        }
+        restoreState();
 
         if (addFileUrl != null) {
             selectedMenu = MENU_MAIN;
