@@ -5,10 +5,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 
+import com.google.android.glass.media.Sounds;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.DecodeHintType;
@@ -23,10 +26,11 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
-
-public class QRActivity extends Activity {
+public class QRActivity extends BaseActivity {
     private static final String TAG = "QRActivity";
     private static final int   SCANS_PER_SEC = 6;
+
+    private AudioManager audioManager;
 
     private Camera camera;
     private QRPreview qrPreview;
@@ -84,7 +88,12 @@ public class QRActivity extends Activity {
                 multiFormatReader.reset();
             }
             if (result != null) {
+                releaseCamera();
+
+                proposeAToast(R.string.qr_code_scanned);
                 Log.i(TAG, "Result: " + result.getText());
+
+                audioManager.playSoundEffect(Sounds.SUCCESS);
 
                 // Add path to file as result
                 Intent returnIntent = new Intent();
@@ -117,28 +126,38 @@ public class QRActivity extends Activity {
 
         // Create an instance of Camera
         camera = getCameraInstance();
+        if (camera == null) {
+            proposeAToast(R.string.no_camera);
+            finish();
+        }
+
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
         // Create our Preview view and set it as the content of our activity.
         qrPreview = new QRPreview(this, camera, previewCallback);
         FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
         preview.addView(qrPreview);
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                TextView qrCodeInfo = (TextView) findViewById(R.id.qrCodeInfo);
+                qrCodeInfo.setText(R.string.scanning_qr_code);
+            }
+        });
     }
 
     /**
      * A safe way to get an instance of the Camera object.
      */
     public static Camera getCameraInstance() {
-        Camera c;
-
         Log.i(TAG, "getting camera instance...");
         try {
-            c = Camera.open(); // attempt to get a Camera instance
+            return Camera.open(); // attempt to get a Camera instance
         } catch (Exception e) {
             Log.e(TAG, "could not getCameraInstance");
             throw e;
         }
-
-        return c; // returns null if camera is unavailable
     }
 
     /**
@@ -153,8 +172,9 @@ public class QRActivity extends Activity {
      */
     @Override
     protected void onPause() {
-        super.onPause();
         releaseCamera();
+
+        super.onPause();
     }
 
     /**
@@ -162,8 +182,9 @@ public class QRActivity extends Activity {
      */
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         releaseCamera();
+
+        super.onDestroy();
     }
 
     /**
@@ -173,7 +194,6 @@ public class QRActivity extends Activity {
         if (camera != null) {
             camera.stopPreview();
             camera.setPreviewCallback(null);
-            qrPreview.release();
             camera.release();        // release the camera for other applications
             camera = null;
         }

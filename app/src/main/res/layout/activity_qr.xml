@@ -9,9 +9,16 @@
         android:id="@+id/camera_preview"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="false"
-        android:layout_alignParentTop="true">
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true">
+
     </FrameLayout>
+
+    <TextView
+        android:layout_width="69dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/qrCodeInfo"
+        android:layout_gravity="center_horizontal|bottom"
+        android:gravity="fill_horizontal|bottom" />
 
 </RelativeLayout>
