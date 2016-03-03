@@ -31,6 +31,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Properties;
 
+import dk.aakb.itk.brilleappen.BrilleappenClient;
+import dk.aakb.itk.brilleappen.BrilleappenClientListener;
+import dk.aakb.itk.brilleappen.ContactPerson;
+import dk.aakb.itk.brilleappen.Event;
+import dk.aakb.itk.brilleappen.Media;
+
 public class MainActivity extends Activity implements BrilleappenClientListener, GestureDetector.BaseListener {
     public static final String FILE_DIRECTORY = "Affaldvarme";
 
@@ -54,13 +60,15 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
 
     private String address = null;
     private String addFileUrl = null;
-    String addressUrl;
-    BrilleappenClient client;
-    private JSONObject clientResult;
+    private String addressUrl;
+    private BrilleappenClient client;
+    private Media clientResultMedia;
     private String username;
     private String password;
-    String captionTwitter;
-    String captionInstagram;
+    private String captionTwitter;
+    private String captionInstagram;
+    private String uploadFileUrl;
+    private Event event;
 
     int selectedMenu = 0;
 
@@ -292,9 +300,9 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
     }
 
     private void notifyByEmail() {
-        if (clientResult != null) {
+        if (clientResultMedia != null) {
             client = new BrilleappenClient(this, addFileUrl, username, password);
-            client.notifyFile(clientResult);
+            client.notifyFile(clientResultMedia);
         }
     }
 
@@ -419,7 +427,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
     }
 
     private void sendFile(String path, boolean notify) {
-        clientResult = null;
+        clientResultMedia = null;
         client = new BrilleappenClient(this, addFileUrl, username, password);
         client.sendFile(new File(path), notify);
     }
@@ -566,70 +574,6 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
         Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
     }
 
-
-    @Override
-    public void getEventDone(BrilleappenClient client, JSONObject result) {
-        try {
-            Log.i(TAG, "getEventDone" + result.toString());
-
-            if (result.getJSONArray("field_gg_instagram_caption").length() > 0) {
-                captionInstagram = result.getJSONArray("field_gg_instagram_caption").getJSONObject(0).getString("value");
-            }
-
-            if (result.getJSONArray("field_gg_twitter_caption").length() > 0) {
-                captionTwitter = result.getJSONArray("field_gg_twitter_caption").getJSONObject(0).getString("value");
-            }
-
-            if (result.getJSONArray("title").length() > 0) {
-                address = result.getJSONArray("title").getJSONObject(0).getString("value");
-            }
-
-            addFileUrl = result.getString("add_file_url");
-
-            saveState();
-
-            // Update the UI
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (addFileUrl != null) {
-                        // Set the main activity view.
-                        setContentView(R.layout.activity_layout);
-                    }
-
-                    updateUI();
-                }
-            });
-        } catch (Exception e) {
-            Log.e(TAG, e.getMessage());
-        }
-    }
-
-
-    @Override
-    public void sendFileDone(BrilleappenClient client, JSONObject result) {
-        Log.i(TAG, "sendFileDone");
-        clientResult = result;
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                proposeAToast("File sent");
-            }
-        });
-    }
-
-    @Override
-    public void notifyFileDone(BrilleappenClient client, JSONObject result) {
-        Log.i(TAG, "notifyFileDone");
-        clientResult = null;
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                proposeAToast("Email sent");
-            }
-        });
-    }
-
     private void createBreakdown() {
         String url = "http://teknikogmiljoe.hulk.aakb.dk/brilleappen/event/create";
         client = new BrilleappenClient(this, url, username, password);
@@ -637,11 +581,10 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
     }
 
     @Override
-    public void createEventDone(BrilleappenClient client, JSONObject result) {
+    public void createEventDone(BrilleappenClient client, boolean success, String url) {
         Log.i(TAG, "createEventDone");
-        clientResult = result;
         try {
-            addressUrl = result.getString("url");
+            addressUrl = url;
 
             selectedMenu = MENU_MAIN;
 
@@ -657,6 +600,71 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
             @Override
             public void run() {
                 proposeAToast("Event created");
+            }
+        });
+    }
+
+    @Override
+    public void getEventDone(BrilleappenClient client, boolean success, Event event) {
+        Log.i(TAG, "getEventDone (" + success + "): " + event);
+
+        if (success) {
+            try {
+                this.event = event;
+
+                this.address = event.title;
+                this.captionTwitter = event.twitterCaption;
+                this.captionInstagram = event.instagramCaption;
+
+                this.uploadFileUrl = event.addFileUrl;
+
+                saveState();
+
+                // Update the UI
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (uploadFileUrl != null) {
+                            // Set the main activity view.
+                            setContentView(R.layout.activity_layout);
+                        }
+
+                        updateUI();
+                    }
+                });
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                Log.e(TAG, e.getMessage());
+            }
+        }
+    }
+
+    @Override
+    public void sendFileDone(BrilleappenClient client, boolean success, File file, Media media) {
+        Log.i(TAG, "sendFileDone");
+        clientResultMedia = media;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                proposeAToast("File sent");
+            }
+        });
+    }
+
+    @Override
+    public void sendFileProgress(BrilleappenClient client, File file, int progress, int max) {
+        // Not implemented
+    }
+
+    @Override
+    public void notifyFileDone(BrilleappenClient client, boolean success, Media media) {
+        Log.i(TAG, "notifyFileDone");
+        clientResultMedia = null;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                proposeAToast("Email sent");
             }
         });
     }
