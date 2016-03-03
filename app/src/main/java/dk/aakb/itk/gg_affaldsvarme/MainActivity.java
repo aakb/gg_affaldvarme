@@ -571,14 +571,35 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
 
     @Override
     public void sendFileDone(BrilleappenClient client, boolean success, File file, Media media) {
-        Log.i(TAG, "sendFileDone");
-        clientResultMedia = media;
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                proposeAToast("File sent");
+        if (success) {
+            // If this is an undelivered file, remove from list
+            for (UndeliveredFile undeliveredFile : undeliveredFiles) {
+                if (undeliveredFile.getFilePath().equals(file.getPath())) {
+                    undeliveredFiles.remove(undeliveredFile);
+                }
+                else {
+                    // Send previously undelivered files.
+                    if (!undeliveredFile.isOfflineEvent()) {
+                        sendFile(undeliveredFile.getFilePath(), false);
+                    }
+                }
             }
-        });
+
+            saveState();
+
+            Log.i(TAG, "sendFileDone");
+            clientResultMedia = media;
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    proposeAToast("File sent");
+                }
+            });
+        } else {
+            undeliveredFiles.add(new UndeliveredFile(event, event.addFileUrl, file.getPath()));
+
+            saveState();
+        }
     }
 
     @Override
