@@ -36,7 +36,7 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
 
     public BrilleappenClient(BrilleappenClientListener listener, String url, String username, String password) {
         this.listener = listener;
-        this.url = url.replaceFirst("/+$", "");
+        this.url = url;
         this.username = username;
         this.password = password;
     }
