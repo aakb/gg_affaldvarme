@@ -1,2 +1,3 @@
 # gg_affaldvarme
-Affald varme prototype
+Google Glass AffaldVarme prototype
+
