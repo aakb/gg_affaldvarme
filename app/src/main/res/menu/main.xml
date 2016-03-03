@@ -16,6 +16,16 @@
             android:id="@+id/scan_new_adress_menu_item"
             android:title="@string/scan_new_address" />
         <item
+            android:id="@+id/make_call_menu_item"
+            android:title="@string/call">
+            <menu>
+                <item
+                    android:id="@+id/contacts_menu_item"
+                    android:orderInCategory="-1"
+                    android:visible="false"/>
+            </menu>
+        </item>
+        <item
             android:id="@+id/finish_menu_item"
             android:title="@string/finish" />
     </group>
@@ -27,17 +37,5 @@
         <item
             android:id="@+id/create_breakdown_menu_item"
             android:title="@string/create_breakdown" />
-        <item
-            android:id="@+id/cancel_menu_item"
-            android:title="@string/cancel">
-            <menu>
-                <item
-                    android:id="@+id/confirm_cancel"
-                    android:title="@string/confirm_cancel" />
-                <item
-                    android:id="@+id/abort_cancel"
-                    android:title="@string/abort_cancel" />
-            </menu>
-        </item>
     </group>
 </menu>

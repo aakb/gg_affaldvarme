@@ -20,6 +20,7 @@ import android.widget.Toast;
 import com.google.android.glass.touchpad.Gesture;
 import com.google.android.glass.touchpad.GestureDetector;
 import com.google.android.glass.view.WindowUtils;
+import com.google.gson.Gson;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -37,7 +38,7 @@ import dk.aakb.itk.brilleappen.ContactPerson;
 import dk.aakb.itk.brilleappen.Event;
 import dk.aakb.itk.brilleappen.Media;
 
-public class MainActivity extends Activity implements BrilleappenClientListener, GestureDetector.BaseListener {
+public class MainActivity extends BaseActivity implements BrilleappenClientListener, GestureDetector.BaseListener {
     public static final String FILE_DIRECTORY = "Affaldvarme";
 
     private static final String TAG = "affaldvarme_main";
@@ -50,6 +51,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
     private static final String STATE_MEMOS = "memos";
     private static final String STATE_EVENT = "url";
     private static final String STATE_ADDRESS = "address";
+    private static final String STATE_CONTACTS = "contacts";
 
     private ArrayList<String> imagePaths = new ArrayList<>();
     private ArrayList<String> videoPaths = new ArrayList<>();
@@ -65,10 +67,9 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
     private Media clientResultMedia;
     private String username;
     private String password;
-    private String captionTwitter;
-    private String captionInstagram;
     private String uploadFileUrl;
     private Event event;
+    private ArrayList<Contact> contacts = new ArrayList<>();
 
     int selectedMenu = 0;
 
@@ -178,24 +179,17 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
         return false;
     }
 
-    /**
-     * On create panel menu.
-     *
-     * @param featureId the feature id
-     * @param menu      the menu to create
-     * @return boolean
-     */
     @Override
     public boolean onCreatePanelMenu(int featureId, Menu menu) {
+        panelMenu = menu;
+
         if (featureId == WindowUtils.FEATURE_VOICE_COMMANDS ||
                 featureId == Window.FEATURE_OPTIONS_PANEL) {
 
             getMenuInflater().inflate(R.menu.main, menu);
+        }
 
-            panelMenu = menu;
-
-            updatePanelMenu();
-
+        if (updateMenu(menu, featureId)) {
             return true;
         }
 
@@ -205,21 +199,47 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
 
     @Override
     public boolean onPreparePanel(int featureId, View view, Menu menu) {
+        updateMenu(menu, featureId);
+
+        return super.onPreparePanel(featureId, view, menu);
+    }
+
+    private boolean updateMenu(Menu menu, int featureId) {
         if (featureId == WindowUtils.FEATURE_VOICE_COMMANDS ||
                 featureId == Window.FEATURE_OPTIONS_PANEL) {
 
-            updatePanelMenu();
-        }
+            // Add contacts menu, if not already added.
+            if (menu.findItem(R.id.make_call_menu_item).getSubMenu().size() <= 1) {
+                for (int i = 0; i < contacts.size(); i++) {
+                    menu.findItem(R.id.make_call_menu_item).getSubMenu().add(R.id.main_menu_group_main, R.id.contacts_menu_item, i, contacts.get(i).getName());
+                }
+            }
 
-        return super.onPreparePanel(featureId, view, menu);
+            // Hide menu if no contacts are available.
+            menu.findItem(R.id.make_call_menu_item).setVisible(contacts.size() > 0);
+
+            // Update which group is visible.
+            setMenuGroupVisibilty(menu);
+
+            // Hide the finish_menu from main_menu_group_main when using voice commands.
+            if (featureId == Window.FEATURE_OPTIONS_PANEL && selectedMenu == MENU_MAIN) {
+                menu.findItem(R.id.finish_menu_item).setVisible(true);
+            }
+            else {
+                menu.findItem(R.id.finish_menu_item).setVisible(false);
+            }
+
+            return true;
+        }
+        return false;
     }
 
     /**
      * Update what menu is displayed.
      */
-    public void updatePanelMenu() {
-        panelMenu.setGroupVisible(R.id.main_menu_group_main, selectedMenu == MENU_MAIN);
-        panelMenu.setGroupVisible(R.id.main_menu_group_start, selectedMenu == MENU_START);
+    public void setMenuGroupVisibilty(Menu menu) {
+        menu.setGroupVisible(R.id.main_menu_group_main, selectedMenu == MENU_MAIN);
+        menu.setGroupVisible(R.id.main_menu_group_start, selectedMenu == MENU_START);
     }
 
     /**
@@ -254,7 +274,18 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
                     notifyByEmail();
 
                     break;
+                case R.id.contacts_menu_item:
+                    Log.i(TAG, "menu: make call");
 
+                    Contact contact = contacts.get(item.getOrder());
+
+                    Log.i(TAG, "Calling: (" + item.getOrder() + ") " + contact.getName() + " " + contact.getPhoneNumber());
+
+                    proposeAToast(R.string.calling_name_phone, contact.getName(), contact.getPhoneNumber());
+
+                    makeCall(contact.getPhoneNumber());
+
+                    break;
                 case R.id.scan_new_adress_menu_item:
                     Log.i(TAG, "menu: Scan new adress");
                     deleteState();
@@ -264,16 +295,6 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
                     updateUI();
 
                     break;
-                case R.id.confirm_cancel:
-                    Log.i(TAG, "menu: Confirm: cancel and exit");
-
-                    cleanDirectory();
-                    deleteState();
-
-                    finish();
-
-                    break;
-
                 case R.id.scan_address_menu_item:
                     Intent scanAddressIntent = new Intent(this, QRActivity.class);
                     startActivityForResult(scanAddressIntent, SCAN_ADDRESS_REQUEST);
@@ -307,15 +328,6 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
     }
 
     /**
-     * Launch the record memo intent.
-     */
-    private void recordMemo() {
-        Intent intent = new Intent(this, MemoActivity.class);
-        intent.putExtra("FILE_PREFIX", address);
-        startActivityForResult(intent, RECORD_MEMO_REQUEST);
-    }
-
-    /**
      * Launch the image capture intent.
      */
     private void takePicture() {
@@ -333,6 +345,18 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
         startActivityForResult(intent, RECORD_VIDEO_CAPTURE_REQUEST);
     }
 
+    /**
+     * Call a phone number with an intent
+     *
+     * @param phoneNumber The phone number to call.
+     */
+    private void makeCall(String phoneNumber) {
+        Intent localIntent = new Intent();
+        localIntent.putExtra("com.google.glass.extra.PHONE_NUMBER", phoneNumber);
+        localIntent.setAction("com.google.glass.action.CALL_DIAL");
+        sendBroadcast(localIntent);
+    }
+
     /*
      * Save state.
      */
@@ -340,10 +364,12 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
         String serializedVideoPaths = (new JSONArray(videoPaths)).toString();
         String serializedImagePaths = (new JSONArray(imagePaths)).toString();
         String serializedMemoPaths = (new JSONArray(memoPaths)).toString();
+        Gson gson = new Gson();
 
         SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPref.edit();
         editor.putString(STATE_VIDEOS, serializedVideoPaths);
+        editor.putString(STATE_CONTACTS, gson.toJson(contacts));
         editor.putString(STATE_PICTURES, serializedImagePaths);
         editor.putString(STATE_MEMOS, serializedMemoPaths);
         editor.putString(STATE_ADDRESS, address);
@@ -502,14 +528,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
 
                         selectedMenu = MENU_MAIN;
 
-                        updatePanelMenu();
-
-                        if (jResult.has("caption")) {
-                            JSONObject caption = jResult.getJSONObject("caption");
-
-                            captionTwitter = caption.getString("twitter");
-                            captionInstagram = caption.getString("instagram");
-                        }
+                        setMenuGroupVisibilty(panelMenu);
 
                         client = new BrilleappenClient(this, addressUrl, username, password);
                         client.getEvent();
@@ -588,7 +607,7 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
 
             selectedMenu = MENU_MAIN;
 
-            updatePanelMenu();
+            setMenuGroupVisibilty(panelMenu);
 
             client = new BrilleappenClient(this, addressUrl, username, password);
             client.getEvent();
@@ -613,8 +632,10 @@ public class MainActivity extends Activity implements BrilleappenClientListener,
                 this.event = event;
 
                 this.address = event.title;
-                this.captionTwitter = event.twitterCaption;
-                this.captionInstagram = event.instagramCaption;
+                this.contacts = new ArrayList<>();
+                for (ContactPerson cp : event.contactPersons) {
+                    contacts.add(new Contact(cp.name, cp.phone));
+                }
 
                 this.uploadFileUrl = event.addFileUrl;
 

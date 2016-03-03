@@ -19,9 +19,6 @@
     <string name="finish">Finish address</string>
     <string name="take_image">Take image</string>
     <string name="record_video">Record video</string>
-    <string name="cancel">Remove all files and exit</string>
-    <string name="confirm_cancel">Yes</string>
-    <string name="abort_cancel">No</string>
     <string name="scan_address">Scan address</string>
     <string name="scan_new_address">Scan new address</string>
     <string name="create_breakdown">Create breakdown</string>
@@ -29,4 +26,7 @@
     <string name="notify">Notify by email</string>
     <string name="photo_help_text">Tap to take picture</string>
     <string name="video_help_text">Tap to stop recording</string>
+
+    <string name="call">Make call</string>
+    <string name="calling_name_phone">Calling %1$s (%2$s)</string>
 </resources>
