@@ -21,5 +21,4 @@ public abstract class BaseActivity extends Activity {
     protected void proposeAToast(int resId, Object... formatArgs) {
         proposeAToast(getString(resId, formatArgs));
     }
-
 }
