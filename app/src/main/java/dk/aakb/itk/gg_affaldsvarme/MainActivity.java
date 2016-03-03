@@ -1,6 +1,5 @@
 package dk.aakb.itk.gg_affaldsvarme;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -23,8 +22,8 @@ import com.google.android.glass.touchpad.Gesture;
 import com.google.android.glass.touchpad.GestureDetector;
 import com.google.android.glass.view.WindowUtils;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -39,6 +38,7 @@ import dk.aakb.itk.brilleappen.BrilleappenClientListener;
 import dk.aakb.itk.brilleappen.ContactPerson;
 import dk.aakb.itk.brilleappen.Event;
 import dk.aakb.itk.brilleappen.Media;
+import dk.aakb.itk.brilleappen.UndeliveredFile;
 
 public class MainActivity extends BaseActivity implements BrilleappenClientListener, GestureDetector.BaseListener {
     public static final String FILE_DIRECTORY = "Affaldvarme";
@@ -48,19 +48,16 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     private static final int RECORD_VIDEO_CAPTURE_REQUEST = 102;
     private static final int SCAN_ADDRESS_REQUEST = 103;
     private static final int RECORD_MEMO_REQUEST = 104;
-    private static final String STATE_VIDEOS = "videos";
-    private static final String STATE_PICTURES = "pictures";
-    private static final String STATE_MEMOS = "memos";
+    private static final String STATE_UNDELIVERED_FILES = "undelivered_files";
     private static final String STATE_EVENT = "url";
     private static final String STATE_ADDRESS = "address";
     private static final String STATE_CONTACTS = "contacts";
 
-    private ArrayList<String> imagePaths = new ArrayList<>();
-    private ArrayList<String> videoPaths = new ArrayList<>();
-    private ArrayList<String> memoPaths = new ArrayList<>();
-
     private static final int MENU_MAIN = 1;
     private static final int MENU_START = 0;
+
+    private GestureDetector gestureDetector;
+    private Menu panelMenu;
 
     private String address = null;
     private String addressUrl;
@@ -71,11 +68,9 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     private String uploadFileUrl;
     private Event event;
     private ArrayList<Contact> contacts = new ArrayList<>();
-
-    int selectedMenu = 0;
-
-    private GestureDetector gestureDetector;
-    private Menu panelMenu;
+    private int numberOfFiles = 0;
+    private int selectedMenu = 0;
+    private ArrayList<UndeliveredFile> undeliveredFiles = new ArrayList<>();
 
     /**
      * On create.
@@ -258,10 +253,11 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
                 case R.id.scan_new_adress_menu_item:
                     Log.i(TAG, "menu: Scan new adress");
                     deleteState();
-                    clearMediaArrays();
+
+                    numberOfFiles = 0;
+
                     Intent scanNewAdressIntent = new Intent(this, QRActivity.class);
                     startActivityForResult(scanNewAdressIntent, SCAN_ADDRESS_REQUEST);
-                    updateUI();
 
                     break;
                 case R.id.scan_address_menu_item:
@@ -330,17 +326,12 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
      * Save state.
      */
     private void saveState() {
-        String serializedVideoPaths = (new JSONArray(videoPaths)).toString();
-        String serializedImagePaths = (new JSONArray(imagePaths)).toString();
-        String serializedMemoPaths = (new JSONArray(memoPaths)).toString();
         Gson gson = new Gson();
 
         SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putString(STATE_VIDEOS, serializedVideoPaths);
+        editor.putString(STATE_UNDELIVERED_FILES, gson.toJson(undeliveredFiles));
         editor.putString(STATE_CONTACTS, gson.toJson(contacts));
-        editor.putString(STATE_PICTURES, serializedImagePaths);
-        editor.putString(STATE_MEMOS, serializedMemoPaths);
         editor.putString(STATE_ADDRESS, address);
         editor.putString(STATE_EVENT, uploadFileUrl);
         editor.apply();
@@ -363,58 +354,16 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
         SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
         uploadFileUrl = sharedPref.getString(STATE_EVENT, null);
         address = sharedPref.getString(STATE_ADDRESS, null);
-        String serializedVideoPaths = sharedPref.getString(STATE_VIDEOS, "[]");
-        String serializedImagePaths = sharedPref.getString(STATE_PICTURES, "[]");
-        String serializedMemoPaths = sharedPref.getString(STATE_MEMOS, "[]");
+        String serializedUndeliveredFiles = sharedPref.getString(STATE_UNDELIVERED_FILES, "[]");
+        String serializedContacts = sharedPref.getString(STATE_CONTACTS, "[]");
 
-        imagePaths = new ArrayList<>();
-        videoPaths = new ArrayList<>();
-        memoPaths = new ArrayList<>();
-
-        try {
-            JSONArray jsonArray = new JSONArray(serializedVideoPaths);
-            for (int i = 0; i < jsonArray.length(); i++) {
-                videoPaths.add(jsonArray.getString(i));
-            }
-
-            jsonArray = new JSONArray(serializedImagePaths);
-            for (int i = 0; i < jsonArray.length(); i++) {
-                imagePaths.add(jsonArray.getString(i));
-            }
-
-            jsonArray = new JSONArray(serializedMemoPaths);
-            for (int i = 0; i < jsonArray.length(); i++) {
-                memoPaths.add(jsonArray.getString(i));
-            }
-        } catch (JSONException e) {
-            // ignore
-        }
+        undeliveredFiles = new Gson().fromJson(serializedUndeliveredFiles, new TypeToken<ArrayList<UndeliveredFile>>() {}.getType());
+        contacts = new Gson().fromJson(serializedContacts, new TypeToken<ArrayList<Contact>>() {}.getType());
 
         Log.i(TAG, "Restored url: " + uploadFileUrl);
         Log.i(TAG, "Restored address: " + address);
-        Log.i(TAG, "Restored imagePaths: " + imagePaths);
-        Log.i(TAG, "Restored videoPaths: " + videoPaths);
-        Log.i(TAG, "Restored memoPaths: " + memoPaths);
-    }
-
-    /**
-     * Empty the directory.
-     */
-    private void cleanDirectory() {
-        File f = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), FILE_DIRECTORY);
-        Log.i(TAG, "Cleaning directory: " + f.getAbsolutePath());
-
-        File[] files = f.listFiles();
-        if (files != null && files.length > 0) {
-            for (File inFile : files) {
-                boolean success = inFile.delete();
-                if (!success) {
-                    Log.e(TAG, "file: " + inFile + " was not deleted (continuing).");
-                }
-            }
-        } else {
-            Log.i(TAG, "directory empty or does not exist.");
-        }
+        Log.i(TAG, "Restored memoPaths: " + undeliveredFiles);
+        Log.i(TAG, "Restored contacts: " + contacts);
     }
 
     private void sendFile(String path) {
@@ -426,7 +375,6 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
         client = new BrilleappenClient(this, uploadFileUrl, username, password);
         client.sendFile(new File(path), notify);
     }
-
 
     /**
      * List all files in f.
@@ -461,19 +409,23 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
             switch (requestCode) {
                 case TAKE_PICTURE_REQUEST:
                     Log.i(TAG, "Received image: " + data.getStringExtra("path"));
-
-                    boolean instaShare = data.getBooleanExtra("instaShare", false);
                     path = data.getStringExtra("path");
-                    imagePaths.add(path);
+
+                    numberOfFiles++;
+
                     saveState();
+
                     updateUI();
                     sendFile(path);
+
                     break;
                 case RECORD_VIDEO_CAPTURE_REQUEST:
                     Log.i(TAG, "Received video: " + data.getStringExtra("path"));
 
                     path = data.getStringExtra("path");
-                    videoPaths.add(path);
+
+                    numberOfFiles++;
+
                     saveState();
                     updateUI();
                     sendFile(path);
@@ -481,11 +433,11 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
                 case RECORD_MEMO_REQUEST:
                     Log.i(TAG, "Received memo: " + data.getStringExtra("path"));
 
-                    memoPaths.add(data.getStringExtra("path"));
+                    numberOfFiles++;
+
                     saveState();
                     updateUI();
                     break;
-
                 case SCAN_ADDRESS_REQUEST:
                     Log.i(TAG, "Received url QR: " + data.getStringExtra("result"));
 
@@ -534,23 +486,10 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
      * Update the UI.
      */
     private void updateUI() {
-        updateTextField(R.id.imageNumber, String.valueOf(imagePaths.size()), imagePaths.size() > 0 ? Color.WHITE : null);
-        updateTextField(R.id.imageLabel, null, imagePaths.size() > 0 ? Color.WHITE : null);
-
-        updateTextField(R.id.videoNumber, String.valueOf(videoPaths.size()), videoPaths.size() > 0 ? Color.WHITE : null);
-        updateTextField(R.id.videoLabel, null, videoPaths.size() > 0 ? Color.WHITE : null);
-
-        updateTextField(R.id.memoNumber, String.valueOf(memoPaths.size()), memoPaths.size() > 0 ? Color.WHITE : null);
-        updateTextField(R.id.memoLabel, null, memoPaths.size() > 0 ? Color.WHITE : null);
+        updateTextField(R.id.imageNumber, String.valueOf(numberOfFiles), numberOfFiles != 0 ? Color.WHITE : null);
+        updateTextField(R.id.imageLabel, null, numberOfFiles > 0 ? Color.WHITE : null);
 
         updateTextField(R.id.addressIdentifier, address, address != null ? Color.WHITE : null);
-    }
-
-
-    private void clearMediaArrays() {
-        imagePaths.clear();
-        videoPaths.clear();
-        memoPaths.clear();
     }
 
     /**
