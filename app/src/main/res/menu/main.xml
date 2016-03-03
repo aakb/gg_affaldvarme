@@ -37,5 +37,8 @@
         <item
             android:id="@+id/create_breakdown_menu_item"
             android:title="@string/create_breakdown" />
+        <item
+            android:id="@+id/offline_event_menu_item"
+            android:title="@string/offline_event" />
     </group>
 </menu>

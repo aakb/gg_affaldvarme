@@ -58,19 +58,17 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
 
     private GestureDetector gestureDetector;
     private Menu panelMenu;
-
-    private String address = null;
-    private String addressUrl;
     private BrilleappenClient client;
+
     private Media clientResultMedia;
     private String username;
     private String password;
-    private String uploadFileUrl;
     private Event event;
     private ArrayList<Contact> contacts = new ArrayList<>();
     private int numberOfFiles = 0;
     private int selectedMenu = 0;
     private ArrayList<UndeliveredFile> undeliveredFiles = new ArrayList<>();
+    private boolean isOffline = false;
 
     /**
      * On create.
@@ -103,7 +101,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
 
         restoreState();
 
-        if (uploadFileUrl != null) {
+        if (event != null) {
             selectedMenu = MENU_MAIN;
 
             // Set the main activity view.
@@ -204,6 +202,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     public void setMenuGroupVisibilty(Menu menu) {
         menu.setGroupVisible(R.id.main_menu_group_main, selectedMenu == MENU_MAIN);
         menu.setGroupVisible(R.id.main_menu_group_start, selectedMenu == MENU_START);
+        menu.findItem(R.id.scan_address_menu_item).setVisible(event == null);
     }
 
     /**
@@ -274,7 +273,16 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
                 case R.id.create_breakdown_menu_item:
                     createBreakdown();
                     break;
+                case R.id.offline_event_menu_item:
+                    setOfflineEvent();
+                    isOffline = true;
+                    selectedMenu = MENU_MAIN;
 
+                    setContentView(R.layout.activity_layout);
+
+                    updateUI();
+
+                    break;
                 default:
                     return true;
             }
@@ -290,6 +298,11 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
             client = new BrilleappenClient(this, clientResultMedia.notifyUrl, username, password);
             client.notifyFile(clientResultMedia);
         }
+    }
+
+    public void setOfflineEvent() {
+        contacts = new ArrayList<>();
+        event = null;
     }
 
     /**
@@ -371,9 +384,21 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     }
 
     private void sendFile(String path, boolean notify) {
-        clientResultMedia = null;
-        client = new BrilleappenClient(this, uploadFileUrl, username, password);
-        client.sendFile(new File(path), notify);
+        if (isOffline) {
+            undeliveredFiles.add(new UndeliveredFile(null, null, path));
+            saveState();
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    proposeAToast(R.string.is_offline_file_not_sent);
+                }
+            });
+        } else {
+            clientResultMedia = null;
+            client = new BrilleappenClient(this, uploadFileUrl, username, password);
+            client.sendFile(new File(path), notify);
+        }
     }
 
     /**
@@ -489,7 +514,8 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
         updateTextField(R.id.filesNumber, String.valueOf(numberOfFiles), numberOfFiles != 0 ? Color.WHITE : null);
         updateTextField(R.id.filesLabel, null, numberOfFiles > 0 ? Color.WHITE : null);
 
-        updateTextField(R.id.addressIdentifier, address, address != null ? Color.WHITE : null);
+        updateTextField(R.id.addressIdentifier, event != null ? event.title : "offline", event != null ? Color.WHITE : null);
+
     }
 
     /**
@@ -547,6 +573,20 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
 
                 this.uploadFileUrl = event.addFileUrl;
 
+                if (isOffline) {
+                    isOffline = false;
+
+                    for (UndeliveredFile undeliveredFile : undeliveredFiles) {
+                        if (undeliveredFile.isOfflineEvent()) {
+                            undeliveredFile.setEvent(event);
+                            undeliveredFile.setEventUrl(event.addFileUrl);
+                        }
+
+                        // Send previously undelivered files.
+                        sendFile(undeliveredFile.getFilePath(), false);
+                    }
+                }
+
                 saveState();
 
                 // Update the UI
@@ -599,7 +639,22 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
             undeliveredFiles.add(new UndeliveredFile(event, event.addFileUrl, file.getPath()));
 
             saveState();
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    proposeAToast(R.string.is_offline_file_not_sent);
+                }
+            });
         }
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ProgressBar progressBar = (ProgressBar) findViewById(R.id.progressBar);
+                progressBar.setVisibility(View.INVISIBLE);
+            }
+        });
     }
 
     @Override

@@ -32,4 +32,6 @@
     <string name="scanning_qr_code">Scanning QR code</string>
     <string name="no_camera">The camera is not available</string>
     <string name="files_label">Files</string>
+    <string name="offline_event">Offline event</string>
+    <string name="is_offline_file_not_sent">Offline - file saved for later</string>
 </resources>
