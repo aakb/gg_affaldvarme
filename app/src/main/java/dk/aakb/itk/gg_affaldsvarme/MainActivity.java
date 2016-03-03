@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -14,6 +15,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -61,7 +63,6 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     private static final int MENU_START = 0;
 
     private String address = null;
-    private String addFileUrl = null;
     private String addressUrl;
     private BrilleappenClient client;
     private Media clientResultMedia;
@@ -107,7 +108,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
 
         restoreState();
 
-        if (addFileUrl != null) {
+        if (uploadFileUrl != null) {
             selectedMenu = MENU_MAIN;
 
             // Set the main activity view.
@@ -224,8 +225,8 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
         if (featureId == WindowUtils.FEATURE_VOICE_COMMANDS ||
                 featureId == Window.FEATURE_OPTIONS_PANEL) {
             switch (item.getItemId()) {
-                case R.id.take_image_menu_item:
-                    Log.i(TAG, "menu: take before image");
+                case R.id.take_picture_menu_item:
+                    Log.i(TAG, "menu: take picture");
 
                     takePicture();
 
@@ -290,7 +291,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
 
     private void notifyByEmail() {
         if (clientResultMedia != null) {
-            client = new BrilleappenClient(this, addFileUrl, username, password);
+            client = new BrilleappenClient(this, clientResultMedia.notifyUrl, username, password);
             client.notifyFile(clientResultMedia);
         }
     }
@@ -299,7 +300,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
      * Launch the image capture intent.
      */
     private void takePicture() {
-        Intent intent = new Intent(this, CameraActivity.class);
+        Intent intent = new Intent(this, PictureActivity.class);
         intent.putExtra("FILE_PREFIX", address);
         startActivityForResult(intent, TAKE_PICTURE_REQUEST);
     }
@@ -341,7 +342,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
         editor.putString(STATE_PICTURES, serializedImagePaths);
         editor.putString(STATE_MEMOS, serializedMemoPaths);
         editor.putString(STATE_ADDRESS, address);
-        editor.putString(STATE_EVENT, addFileUrl);
+        editor.putString(STATE_EVENT, uploadFileUrl);
         editor.apply();
     }
 
@@ -360,7 +361,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
      */
     private void restoreState() {
         SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
-        addFileUrl = sharedPref.getString(STATE_EVENT, null);
+        uploadFileUrl = sharedPref.getString(STATE_EVENT, null);
         address = sharedPref.getString(STATE_ADDRESS, null);
         String serializedVideoPaths = sharedPref.getString(STATE_VIDEOS, "[]");
         String serializedImagePaths = sharedPref.getString(STATE_PICTURES, "[]");
@@ -389,7 +390,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
             // ignore
         }
 
-        Log.i(TAG, "Restored url: " + addFileUrl);
+        Log.i(TAG, "Restored url: " + uploadFileUrl);
         Log.i(TAG, "Restored address: " + address);
         Log.i(TAG, "Restored imagePaths: " + imagePaths);
         Log.i(TAG, "Restored videoPaths: " + videoPaths);
@@ -422,7 +423,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
 
     private void sendFile(String path, boolean notify) {
         clientResultMedia = null;
-        client = new BrilleappenClient(this, addFileUrl, username, password);
+        client = new BrilleappenClient(this, uploadFileUrl, username, password);
         client.sendFile(new File(path), notify);
     }
 
@@ -642,8 +643,19 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     }
 
     @Override
-    public void sendFileProgress(BrilleappenClient client, File file, int progress, int max) {
-        // Not implemented
+    public void sendFileProgress(BrilleappenClient client, File file, final int progress, final int max) {
+       Log.i(TAG, String.format("sendFileProgress: %d/%d", progress, max));
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ProgressBar progressBar = (ProgressBar)findViewById(R.id.progressBar);
+                progressBar.setVisibility(View.VISIBLE);
+                progressBar.getIndeterminateDrawable().setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
+                progressBar.getProgressDrawable().setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
+                progressBar.setMax(max);
+                progressBar.setProgress(progress);
+            }
+        });
     }
 
     @Override

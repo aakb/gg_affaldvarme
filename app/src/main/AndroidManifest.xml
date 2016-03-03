@@ -35,7 +35,7 @@
                 android:resource="@xml/launch_voice_trigger" />
         </activity>
         <activity
-            android:name=".CameraActivity"
+            android:name=".PictureActivity"
             android:label="@string/app_name"
             android:parentActivityName=".MainActivity"
             android:screenOrientation="landscape">

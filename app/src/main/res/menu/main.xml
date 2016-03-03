@@ -4,8 +4,8 @@
     <group
         android:id="@+id/main_menu_group_main">
         <item
-            android:id="@+id/take_image_menu_item"
-            android:title="@string/take_image" />
+            android:id="@+id/take_picture_menu_item"
+            android:title="@string/take_picture" />
         <item
             android:id="@+id/record_video_menu_item"
             android:title="@string/record_video" />

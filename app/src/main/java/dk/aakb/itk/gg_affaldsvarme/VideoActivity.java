@@ -1,92 +1,94 @@
 package dk.aakb.itk.gg_affaldsvarme;
 
-import android.app.Activity;
-import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.media.AudioManager;
 import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
-import android.view.MotionEvent;
-import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import com.google.android.glass.touchpad.Gesture;
-import com.google.android.glass.touchpad.GestureDetector;
 
-import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
+public class VideoActivity extends CameraActivity {
+    private static final int STATE_RECORDING = 1;
+    private static final int STATE_ACTION = 2;
 
-public class VideoActivity extends Activity implements GestureDetector.BaseListener {
-    private static final String TAG = "VideoActivity";
-
-    private Camera camera;
-    private CameraPreview cameraPreview;
-    private MediaRecorder mediaRecorder;
     private TextView durationText;
-    private TextView textField;
-
+    private MediaRecorder mediaRecorder;
     private Timer timer;
     private int timerExecutions = 0;
-    private String filePrefix;
     private boolean recording = false;
-    private String outputPath;
-
-    private AudioManager audioManager;
-    private GestureDetector gestureDetector;
 
     /**
      * On create.
      *
-     * @param savedInstanceState save instance state
+     * @param savedInstanceState
      */
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        TAG = "VideoActivity";
+        contentView = R.layout.activity_camera_video;
+
         super.onCreate(savedInstanceState);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                textField.setText(R.string.video_help_text);
+            }
+        });
 
-        Log.i(TAG, "Launching video activity");
-
-        // Get file prefix
-        Intent intent = getIntent();
-        filePrefix = intent.getStringExtra("FILE_PREFIX");
-
-        setContentView(R.layout.activity_camera_video);
-
-        durationText = (TextView) findViewById(R.id.text_camera_duration);
-
-        textField = (TextView) findViewById(R.id.text_camera_helptext);
-
-        textField.setText(R.string.video_help_text);
-
-        if (!checkCameraHardware(this)) {
-            Log.i(TAG, "no camera");
-            finish();
-        }
-
-        Log.i(TAG, "get camera instance");
-        camera = getCameraInstance();
-
-        // Create our Preview view and set it as the content of our activity.
-        cameraPreview = new CameraPreview(this, camera);
-        FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
-        preview.addView(cameraPreview);
-
-        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        gestureDetector = new GestureDetector(this).setBaseListener(this);
+        durationText = (TextView)findViewById(R.id.text_camera_duration);
 
         // Reset timer executions.
         timerExecutions = 0;
-
         launchUnlimitedVideo();
+
+        state = STATE_RECORDING;
+    }
+
+    public boolean onGesture(Gesture gesture) {
+        if (Gesture.TAP.equals(gesture)) {
+            if (state == STATE_RECORDING) {
+                handleSingleTap();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void handleSingleTap() {
+        Log.i(TAG, "Single tap.");
+
+        audioManager.playSoundEffect(AudioManager.FX_KEY_CLICK);
+
+        if (recording) {
+            Log.i(TAG, "Stop recording!");
+
+            try {
+                releaseTimer();
+                mediaRecorder.stop();  // stop the recording
+                releaseMediaRecorder(); // release the MediaRecorder object
+                releaseCamera();
+                recording = false;
+
+                recordingDone();
+            } catch (Exception e) {
+                Log.d(TAG, "Exception stopping recording: " + e.getMessage());
+                releaseMediaRecorder();
+                releaseCamera();
+                finish();
+            }
+        }
+    }
+
+    private void recordingDone() {
+        returnFile(false);
     }
 
     private void launchUnlimitedVideo() {
@@ -109,7 +111,6 @@ public class VideoActivity extends Activity implements GestureDetector.BaseListe
                 public void onError(MediaRecorder mediarecorder1, int k, int i1) {
                     Log.e(TAG, String.format("Media Recorder error: k=%d, i1=%d", k, i1));
                 }
-
             });
 
             // Step 1: Unlock and set camera to MediaRecorder. Clear preview.
@@ -128,8 +129,8 @@ public class VideoActivity extends Activity implements GestureDetector.BaseListe
 
             // Step 4: Set output file
             Log.i(TAG, "set output file");
-            outputPath = getOutputVideoFile().toString();
-            mediaRecorder.setOutputFile(outputPath);
+            outputFile = getOutputFile("video", "mp4");
+            mediaRecorder.setOutputFile(outputFile.getAbsolutePath());
 
             (new Timer()).schedule(new TimerTask() {
                 @Override
@@ -143,8 +144,7 @@ public class VideoActivity extends Activity implements GestureDetector.BaseListe
 
                         // Step 6: Prepare configured MediaRecorder
                         mediaRecorder.prepare();
-                    }
-                    catch (IOException e) {
+                    } catch (IOException e) {
                         Log.d(TAG, "IOException preparing MediaRecorder: " + e.getMessage());
                         releaseMediaRecorder();
                         releaseCamera();
@@ -180,14 +180,12 @@ public class VideoActivity extends Activity implements GestureDetector.BaseListe
                     }, 1000, 1000);
                 }
             }, 1000);
-        }
-        catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
             Log.d(TAG, "IllegalStateException preparing MediaRecorder (" + e.getCause() + "): " + e.getMessage());
             releaseMediaRecorder();
             releaseCamera();
             finish();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Log.d(TAG, "Exception preparing MediaRecorder: " + e.getMessage());
             releaseMediaRecorder();
             releaseCamera();
@@ -195,90 +193,15 @@ public class VideoActivity extends Activity implements GestureDetector.BaseListe
         }
     }
 
-
-    /**
-     * A safe way to get an instance of the Camera object.
-     */
-    public static Camera getCameraInstance() {
-        Camera c = null;
-
-        Log.i(TAG, "getting camera instance...");
-        try {
-            c = Camera.open(); // attempt to get a Camera instance
-        } catch (Exception e) {
-            Log.e(TAG, "could not getCameraInstance");
-            throw e;
-            // Camera is not available (in use or does not exist)
-            // @TODO: Throw Toast!
-        }
-
-        return c; // returns null if camera is unavailable
-    }
-
-    /**
-     * Check if this device has a camera
-     */
-    private boolean checkCameraHardware(Context context) {
-        if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
-            // this device has a camera
-            return true;
-        } else {
-            // no camera on this device
-            return false;
-        }
-    }
-
-    public boolean onGenericMotionEvent(MotionEvent event) {
-        return gestureDetector.onMotionEvent(event);
-    }
-
-    public boolean onGesture(Gesture gesture) {
-        if (Gesture.TAP.equals(gesture)) {
-            audioManager.playSoundEffect(AudioManager.FX_KEY_CLICK);
-
-            if (recording) {
-                Log.i(TAG, "Stop recording!");
-
-                timer.cancel();
-
-                try {
-                    mediaRecorder.stop();  // stop the recording
-                    releaseMediaRecorder(); // release the MediaRecorder object
-                    releaseCamera();
-
-                    // Add path to file as result
-                    Intent returnIntent = new Intent();
-                    returnIntent.putExtra("path", outputPath);
-                    setResult(RESULT_OK, returnIntent);
-
-                    recording = false;
-
-                    // Finish activity
-                    finish();
-                } catch (Exception e) {
-                    Log.d(TAG, "Exception stopping recording: " + e.getMessage());
-                    releaseMediaRecorder();
-                    releaseCamera();
-                    finish();
-                }
-            }
-
-            return true;
-        }
-        return false;
-    }
-
     /**
      * On pause.
      */
     @Override
     protected void onPause() {
-        super.onPause();
-
         timer.cancel();
         releaseMediaRecorder();       // if you are using MediaRecorder, release it first
-        releaseCamera();
 
+        super.onPause();
     }
 
     /**
@@ -286,12 +209,10 @@ public class VideoActivity extends Activity implements GestureDetector.BaseListe
      */
     @Override
     protected void onDestroy() {
-        super.onDestroy();
-
         timer.cancel();
         releaseMediaRecorder();       // if you are using MediaRecorder, release it first
-        releaseCamera();
 
+        super.onDestroy();
     }
 
     /**
@@ -306,36 +227,9 @@ public class VideoActivity extends Activity implements GestureDetector.BaseListe
         }
     }
 
-    /**
-     * Release the camera.
-     */
-    private void releaseCamera() {
-        if (camera != null) {
-            camera.stopPreview();
-            cameraPreview.release();
-            camera.release();        // release the camera for other applications
-            camera = null;
+    private void releaseTimer() {
+        if (timer != null) {
+            timer.cancel();
         }
-    }
-
-    /**
-     * Create a File for saving a video
-     */
-    private File getOutputVideoFile() {
-        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM) + "/" + MainActivity.FILE_DIRECTORY, filePrefix );
-
-        // Create the storage directory if it does not exist
-        if (!mediaStorageDir.exists()) {
-            if (!mediaStorageDir.mkdirs()) {
-                Log.d(TAG, "failed to create directory");
-                return null;
-            }
-        }
-
-        // Create a media file name
-        String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HHmmss").format(new Date());
-        File mediaFile = new File(mediaStorageDir.getPath() + File.separator +
-                    filePrefix + "_video_" + timeStamp + ".mp4");
-        return mediaFile;
     }
 }

@@ -54,10 +54,6 @@ public class QRPreview extends SurfaceView implements SurfaceHolder.Callback {
         // empty. Take care of releasing the Camera preview in your activity.
     }
 
-    public void release() {
-        getHolder().getSurface().release();
-    }
-
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
         Log.i(TAG, "surface changed");
         // If your preview can change or rotate, take care of those events here.
