@@ -10,8 +10,13 @@ public abstract class BaseActivity extends Activity {
      *
      * @param message Message to display
      */
-    protected void proposeAToast(String message) {
-        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
+    private void proposeAToast(final String message) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     protected void proposeAToast(int resId) {
