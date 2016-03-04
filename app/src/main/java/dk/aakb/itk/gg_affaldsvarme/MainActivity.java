@@ -54,6 +54,8 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     private static final String STATE_EVENT = "event";
     private static final String STATE_EVENT_URL = "event_url";
     private static final String STATE_CONTACTS = "contacts";
+    private static final String STATE_NUMBER_OF_IMAGE_FILES = "number_of_image_files";
+    private static final String STATE_NUMBER_OF_VIDEO_FILES = "number_of_video_files";
 
     private static final int MENU_MAIN = 1;
     private static final int MENU_START = 0;
@@ -66,7 +68,8 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
 
     private Media clientResultMedia;
     private boolean isOffline = false;
-    private int numberOfFiles = 0;
+    private int numberOfImageFiles = 0;
+    private int numberOfVideoFiles = 0;
     private int selectedMenu = MENU_START;
     private ArrayList<Contact> contacts = new ArrayList<>();
     private ArrayList<UndeliveredFile> undeliveredFiles = new ArrayList<>();
@@ -257,7 +260,8 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
                     Log.i(TAG, "menu: Scan new adress");
                     deleteState();
 
-                    numberOfFiles = 0;
+                    numberOfImageFiles = 0;
+                    numberOfVideoFiles = 0;
 
                     Intent scanNewAdressIntent = new Intent(this, QRActivity.class);
                     startActivityForResult(scanNewAdressIntent, SCAN_ADDRESS_REQUEST);
@@ -273,9 +277,9 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
                     finish();
 
                     break;
-
                 case R.id.create_breakdown_menu_item:
                     createBreakdown();
+
                     break;
                 case R.id.offline_event_menu_item:
                     setOfflineEvent();
@@ -346,6 +350,8 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
         SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPref.edit();
         editor.putString(STATE_UNDELIVERED_FILES, gson.toJson(undeliveredFiles));
+        editor.putInt(STATE_NUMBER_OF_IMAGE_FILES, numberOfImageFiles);
+        editor.putInt(STATE_NUMBER_OF_VIDEO_FILES, numberOfVideoFiles);
         editor.putString(STATE_CONTACTS, gson.toJson(contacts));
         editor.putString(STATE_EVENT_URL, eventUrl);
         editor.putString(STATE_EVENT, gson.toJson(event));
@@ -358,7 +364,11 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     private void deleteState() {
         SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPref.edit();
-        editor.clear();
+        editor.remove(STATE_CONTACTS);
+        editor.remove(STATE_EVENT_URL);
+        editor.remove(STATE_EVENT);
+        editor.remove(STATE_NUMBER_OF_IMAGE_FILES);
+        editor.remove(STATE_NUMBER_OF_VIDEO_FILES);
         editor.apply();
     }
 
@@ -367,7 +377,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
      */
     private void restoreState() {
         SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
-        String serializedEvent = sharedPref.getString(STATE_EVENT, "{}");
+        String serializedEvent = sharedPref.getString(STATE_EVENT, null);
         String serializedUndeliveredFiles = sharedPref.getString(STATE_UNDELIVERED_FILES, "[]");
         String serializedContacts = sharedPref.getString(STATE_CONTACTS, "[]");
 
@@ -375,6 +385,8 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
         contacts = new Gson().fromJson(serializedContacts, new TypeToken<ArrayList<Contact>>() {}.getType());
         event = new Gson().fromJson(serializedEvent, Event.class);
         eventUrl = sharedPref.getString(STATE_EVENT_URL, null);
+        numberOfImageFiles = sharedPref.getInt(STATE_NUMBER_OF_IMAGE_FILES, 0);
+        numberOfVideoFiles = sharedPref.getInt(STATE_NUMBER_OF_VIDEO_FILES, 0);
 
         Log.i(TAG, "Restored event: " + event);
         Log.i(TAG, "Restored event url: " + eventUrl);
@@ -439,7 +451,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
                     Log.i(TAG, "Received image: " + data.getStringExtra("path"));
                     path = data.getStringExtra("path");
 
-                    numberOfFiles++;
+                    numberOfImageFiles++;
 
                     saveState();
 
@@ -452,19 +464,11 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
 
                     path = data.getStringExtra("path");
 
-                    numberOfFiles++;
+                    numberOfVideoFiles++;
 
                     saveState();
                     updateUI();
                     sendFile(path);
-                    break;
-                case RECORD_MEMO_REQUEST:
-                    Log.i(TAG, "Received memo: " + data.getStringExtra("path"));
-
-                    numberOfFiles++;
-
-                    saveState();
-                    updateUI();
                     break;
                 case SCAN_ADDRESS_REQUEST:
                     Log.i(TAG, "Received url QR: " + data.getStringExtra("result"));
@@ -514,8 +518,10 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
      * Update the UI.
      */
     private void updateUI() {
-        updateTextField(R.id.filesNumber, String.valueOf(numberOfFiles), numberOfFiles != 0 ? Color.WHITE : null);
-        updateTextField(R.id.filesLabel, null, numberOfFiles > 0 ? Color.WHITE : null);
+        updateTextField(R.id.videoFilesNumber, String.valueOf(numberOfVideoFiles), numberOfVideoFiles != 0 ? Color.WHITE : null);
+        updateTextField(R.id.videoFilesLabel, null, numberOfVideoFiles > 0 ? Color.WHITE : null);
+        updateTextField(R.id.imageFilesNumber, String.valueOf(numberOfImageFiles), numberOfImageFiles != 0 ? Color.WHITE : null);
+        updateTextField(R.id.imageFilesLabel, null, numberOfImageFiles > 0 ? Color.WHITE : null);
 
         updateTextField(R.id.addressIdentifier, event != null ? event.title : "offline", event != null ? Color.WHITE : null);
 
@@ -606,6 +612,18 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
                 e.printStackTrace();
                 Log.e(TAG, e.getMessage());
             }
+        }
+        else {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                   proposeAToast("Error getting event. Test internet connection, and try again.");
+                }
+            });
+
+            setOfflineEvent();
+
+            updateUI();
         }
     }
 

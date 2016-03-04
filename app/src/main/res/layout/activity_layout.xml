@@ -46,7 +46,7 @@
                 android:layout_height="match_parent"
                 android:textAppearance="?android:attr/textAppearanceMedium"
                 android:text="-"
-                android:id="@+id/filesNumber"
+                android:id="@+id/imageFilesNumber"
                 android:gravity="right"
                 android:textColor="#898989" />
 
@@ -54,8 +54,32 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:text="@string/files_label"
-                android:id="@+id/filesLabel"
+                android:text="@string/image_files_label"
+                android:id="@+id/imageFilesLabel"
+                android:layout_marginLeft="10px"
+                android:textColor="#898989" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="50px"
+                android:layout_height="match_parent"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="-"
+                android:id="@+id/videoFilesNumber"
+                android:gravity="right"
+                android:textColor="#898989" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="@string/video_files_label"
+                android:id="@+id/videoFilesLabel"
                 android:layout_marginLeft="10px"
                 android:textColor="#898989" />
         </LinearLayout>
