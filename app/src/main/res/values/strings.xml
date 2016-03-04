@@ -31,4 +31,10 @@
     <string name="qr_code_scanned">QR code scanned</string>
     <string name="scanning_qr_code">Scanning QR code</string>
     <string name="no_camera">The camera is not available</string>
+    <string name="file_uploaded">File uploaded</string>
+    <string name="error_uploading_file">Error uploading file</string>
+    <string name="uploading_file">Uploading file</string>
+    <string name="event_created">Event created</string>
+    <string name="email_sent">Email sent</string>
+    <string name="cannot_read_configuration_file">Cannot read configuration file</string>
 </resources>

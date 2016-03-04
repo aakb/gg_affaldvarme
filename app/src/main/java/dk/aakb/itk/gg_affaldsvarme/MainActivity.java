@@ -1,6 +1,5 @@
 package dk.aakb.itk.gg_affaldsvarme;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -98,7 +97,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
             InputStream inputStream = assetManager.open("config.properties");
             properties.load(inputStream);
         } catch (Exception e) {
-            proposeAToast("Cannot read configuration file");
+            proposeAToast(R.string.cannot_read_configuration_file);
             Log.e(TAG, e.getMessage());
             finish();
         }
@@ -422,6 +421,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     }
 
     private void sendFile(String path, boolean notify) {
+        proposeAToast(R.string.uploading_file);
         clientResultMedia = null;
         client = new BrilleappenClient(this, uploadFileUrl, username, password);
         client.sendFile(new File(path), notify);
@@ -553,15 +553,6 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
         memoPaths.clear();
     }
 
-    /**
-     * Send a toast
-     *
-     * @param message Message to display
-     */
-    public void proposeAToast(String message) {
-        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
-    }
-
     private void createBreakdown() {
         String url = "http://teknikogmiljoe.hulk.aakb.dk/brilleappen/event/create";
         client = new BrilleappenClient(this, url, username, password);
@@ -584,12 +575,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
             Log.e(TAG, ex.getMessage(), ex);
         }
 
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                proposeAToast("Event created");
-            }
-        });
+        proposeAToast(R.string.event_created);
     }
 
     @Override
@@ -634,12 +620,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     public void sendFileDone(BrilleappenClient client, boolean success, File file, Media media) {
         Log.i(TAG, "sendFileDone");
         clientResultMedia = media;
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                proposeAToast("File sent");
-            }
-        });
+        proposeAToast(success ? R.string.file_uploaded : R.string.error_uploading_file);
     }
 
     @Override
@@ -662,11 +643,6 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     public void notifyFileDone(BrilleappenClient client, boolean success, Media media) {
         Log.i(TAG, "notifyFileDone");
         clientResultMedia = null;
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                proposeAToast("Email sent");
-            }
-        });
+        proposeAToast(R.string.email_sent);
     }
 }
