@@ -367,7 +367,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
      */
     private void restoreState() {
         SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
-        String serializedEvent = sharedPref.getString(STATE_EVENT, "[]");
+        String serializedEvent = sharedPref.getString(STATE_EVENT, "{}");
         String serializedUndeliveredFiles = sharedPref.getString(STATE_UNDELIVERED_FILES, "[]");
         String serializedContacts = sharedPref.getString(STATE_CONTACTS, "[]");
 
