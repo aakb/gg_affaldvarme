@@ -212,22 +212,18 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
 
             Media media = null;
             boolean success = false;
-            try {
-                if (serverResponseCode == 200) {
-                    media = new Media(response);
-                    success = true;
-                }
-            } catch (Exception e) {
-                Log.e(TAG, e.getMessage());
+            if (serverResponseCode == 200) {
+                media = new Media(response);
+                success = true;
             }
 
             if (listener != null) {
                 listener.sendFileDone(this, success, file, media);
             }
-
-            Log.i(TAG, serverResponseCode + ": " + response);
         } catch (Throwable t) {
-            Log.e(TAG, t.getClass() + "\t" + t.getMessage());
+            if (listener != null) {
+                listener.sendFileDone(this, false, file, null);
+            }
         }
     }
 
