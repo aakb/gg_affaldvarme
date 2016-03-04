@@ -44,13 +44,15 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     public static final String FILE_DIRECTORY = "Affaldvarme";
 
     private static final String TAG = "affaldvarme_main";
+
     private static final int TAKE_PICTURE_REQUEST = 101;
     private static final int RECORD_VIDEO_CAPTURE_REQUEST = 102;
     private static final int SCAN_ADDRESS_REQUEST = 103;
     private static final int RECORD_MEMO_REQUEST = 104;
+
     private static final String STATE_UNDELIVERED_FILES = "undelivered_files";
-    private static final String STATE_EVENT = "url";
-    private static final String STATE_ADDRESS = "address";
+    private static final String STATE_EVENT = "event";
+    private static final String STATE_EVENT_URL = "event_url";
     private static final String STATE_CONTACTS = "contacts";
 
     private static final int MENU_MAIN = 1;
@@ -59,16 +61,18 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     private GestureDetector gestureDetector;
     private Menu panelMenu;
     private BrilleappenClient client;
-
-    private Media clientResultMedia;
     private String username;
     private String password;
-    private Event event;
-    private ArrayList<Contact> contacts = new ArrayList<>();
-    private int numberOfFiles = 0;
-    private int selectedMenu = 0;
-    private ArrayList<UndeliveredFile> undeliveredFiles = new ArrayList<>();
+
+    private Media clientResultMedia;
     private boolean isOffline = false;
+    private int numberOfFiles = 0;
+    private int selectedMenu = MENU_START;
+    private ArrayList<Contact> contacts = new ArrayList<>();
+    private ArrayList<UndeliveredFile> undeliveredFiles = new ArrayList<>();
+
+    private Event event;
+    private String eventUrl;
 
     /**
      * On create.
@@ -310,7 +314,6 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
      */
     private void takePicture() {
         Intent intent = new Intent(this, PictureActivity.class);
-        intent.putExtra("FILE_PREFIX", address);
         startActivityForResult(intent, TAKE_PICTURE_REQUEST);
     }
 
@@ -319,7 +322,6 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
      */
     private void recordVideo() {
         Intent intent = new Intent(this, VideoActivity.class);
-        intent.putExtra("FILE_PREFIX", address);
         startActivityForResult(intent, RECORD_VIDEO_CAPTURE_REQUEST);
     }
 
@@ -345,8 +347,8 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
         SharedPreferences.Editor editor = sharedPref.edit();
         editor.putString(STATE_UNDELIVERED_FILES, gson.toJson(undeliveredFiles));
         editor.putString(STATE_CONTACTS, gson.toJson(contacts));
-        editor.putString(STATE_ADDRESS, address);
-        editor.putString(STATE_EVENT, uploadFileUrl);
+        editor.putString(STATE_EVENT_URL, eventUrl);
+        editor.putString(STATE_EVENT, gson.toJson(event));
         editor.apply();
     }
 
@@ -365,17 +367,18 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
      */
     private void restoreState() {
         SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
-        uploadFileUrl = sharedPref.getString(STATE_EVENT, null);
-        address = sharedPref.getString(STATE_ADDRESS, null);
+        String serializedEvent = sharedPref.getString(STATE_EVENT, "[]");
         String serializedUndeliveredFiles = sharedPref.getString(STATE_UNDELIVERED_FILES, "[]");
         String serializedContacts = sharedPref.getString(STATE_CONTACTS, "[]");
 
         undeliveredFiles = new Gson().fromJson(serializedUndeliveredFiles, new TypeToken<ArrayList<UndeliveredFile>>() {}.getType());
         contacts = new Gson().fromJson(serializedContacts, new TypeToken<ArrayList<Contact>>() {}.getType());
+        event = new Gson().fromJson(serializedEvent, Event.class);
+        eventUrl = sharedPref.getString(STATE_EVENT_URL, null);
 
-        Log.i(TAG, "Restored url: " + uploadFileUrl);
-        Log.i(TAG, "Restored address: " + address);
-        Log.i(TAG, "Restored memoPaths: " + undeliveredFiles);
+        Log.i(TAG, "Restored event: " + event);
+        Log.i(TAG, "Restored event url: " + eventUrl);
+        Log.i(TAG, "Restored undeliveredFiles: " + undeliveredFiles);
         Log.i(TAG, "Restored contacts: " + contacts);
     }
 
@@ -396,7 +399,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
             });
         } else {
             clientResultMedia = null;
-            client = new BrilleappenClient(this, uploadFileUrl, username, password);
+            client = new BrilleappenClient(this, eventUrl, username, password);
             client.sendFile(new File(path), notify);
         }
     }
@@ -470,13 +473,13 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
 
                     try {
                         JSONObject jResult = new JSONObject(result);
-                        addressUrl = jResult.getString("url");
+                        eventUrl = jResult.getString("url");
 
                         selectedMenu = MENU_MAIN;
 
                         setMenuGroupVisibilty(panelMenu);
 
-                        client = new BrilleappenClient(this, addressUrl, username, password);
+                        client = new BrilleappenClient(this, eventUrl, username, password);
                         client.getEvent();
                     } catch (JSONException e) {
                         Log.e(TAG, e.getMessage());
@@ -537,13 +540,13 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     public void createEventDone(BrilleappenClient client, boolean success, String url) {
         Log.i(TAG, "createEventDone");
         try {
-            addressUrl = url;
+            eventUrl = url;
 
             selectedMenu = MENU_MAIN;
 
             setMenuGroupVisibilty(panelMenu);
 
-            client = new BrilleappenClient(this, addressUrl, username, password);
+            client = new BrilleappenClient(this, eventUrl, username, password);
             client.getEvent();
         } catch (Exception ex) {
             Log.e(TAG, ex.getMessage(), ex);
@@ -565,13 +568,10 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
             try {
                 this.event = event;
 
-                this.address = event.title;
                 this.contacts = new ArrayList<>();
                 for (ContactPerson cp : event.contactPersons) {
                     contacts.add(new Contact(cp.name, cp.phone));
                 }
-
-                this.uploadFileUrl = event.addFileUrl;
 
                 if (isOffline) {
                     isOffline = false;
@@ -589,18 +589,18 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
 
                 saveState();
 
-                // Update the UI
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (uploadFileUrl != null) {
+                if (this.event != null) {
+                    // Update the UI
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
                             // Set the main activity view.
                             setContentView(R.layout.activity_layout);
-                        }
 
-                        updateUI();
-                    }
-                });
+                            updateUI();
+                        }
+                    });
+                }
             }
             catch (Exception e) {
                 e.printStackTrace();
