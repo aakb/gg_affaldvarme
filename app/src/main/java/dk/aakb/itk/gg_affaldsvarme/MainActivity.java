@@ -1,6 +1,5 @@
 package dk.aakb.itk.gg_affaldsvarme;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
