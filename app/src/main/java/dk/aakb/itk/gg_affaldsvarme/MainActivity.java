@@ -318,6 +318,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
      */
     private void takePicture() {
         Intent intent = new Intent(this, PictureActivity.class);
+        intent.putExtra("FILE_PREFIX", event != null ? event.title : "");
         startActivityForResult(intent, TAKE_PICTURE_REQUEST);
     }
 
@@ -326,6 +327,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
      */
     private void recordVideo() {
         Intent intent = new Intent(this, VideoActivity.class);
+        intent.putExtra("FILE_PREFIX", event != null ? event.title : "");
         startActivityForResult(intent, RECORD_VIDEO_CAPTURE_REQUEST);
     }
 
