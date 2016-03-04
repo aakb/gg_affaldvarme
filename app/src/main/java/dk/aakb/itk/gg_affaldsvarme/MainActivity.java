@@ -413,7 +413,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
             });
         } else {
             clientResultMedia = null;
-            client = new BrilleappenClient(this, eventUrl, username, password);
+            client = new BrilleappenClient(this, event.addFileUrl, username, password);
             client.sendFile(new File(path), notify);
         }
     }
@@ -554,6 +554,8 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
 
             setMenuGroupVisibilty(panelMenu);
 
+            saveState();
+
             client = new BrilleappenClient(this, eventUrl, username, password);
             client.getEvent();
         } catch (Exception ex) {
@@ -575,6 +577,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
         if (success) {
             try {
                 this.event = event;
+                this.eventUrl = event.addFileUrl;
 
                 this.contacts = new ArrayList<>();
                 for (ContactPerson cp : event.contactPersons) {
