@@ -8,7 +8,6 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -125,22 +124,18 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
 
             String response = getResponse(connection, 201);
 
-            String eventUrl = null;
-            boolean success = false;
-
-            try {
-                Map<String, Object> values = Util.getValues(response);
-                eventUrl = values.containsKey("url") ? (String)values.get("url") : null;
-                success = values.containsKey("status") && values.get("status") == "OK";
-            } catch (Exception e) {
-                Log.e(TAG, e.getMessage());
-            }
+            Map values = Util.getValues(response);
+            String eventUrl = values.containsKey("url") ? (String)values.get("url") : null;
+            boolean success = values.containsKey("status") && "OK".equals(values.get("status"));
 
             if (listener != null) {
                 listener.createEventDone(this, success, eventUrl);
             }
-        } catch (Exception e) {
-            Log.e(TAG, e.getMessage());
+        } catch (Throwable t) {
+            Log.e(TAG, t.getClass() + ": " + t.getMessage());
+            if (listener != null) {
+                listener.createEventDone(this, false, null);
+            }
         }
     }
 
@@ -158,20 +153,16 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
 
             String response = getResponse(connection);
 
-            boolean success = false;
-            Event event = null;
-            try {
-                event = new Event(response);
-                success = true;
-            } catch (Exception e) {
-                Log.e(TAG, e.getMessage());
-            }
+            Event event = new Event(response);
 
             if (listener != null) {
-                listener.getEventDone(this, success, event);
+                listener.getEventDone(this, true, event);
             }
-        } catch (Exception e) {
-            Log.e(TAG, e.getMessage());
+        } catch (Throwable t) {
+            Log.e(TAG, t.getClass() + ": " + t.getMessage());
+            if (listener != null) {
+                listener.getEventDone(this, false, null);
+            }
         }
     }
 
@@ -221,6 +212,7 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
                 listener.sendFileDone(this, success, file, media);
             }
         } catch (Throwable t) {
+            Log.e(TAG, t.getClass() + ": " + t.getMessage());
             if (listener != null) {
                 listener.sendFileDone(this, false, file, null);
             }
@@ -250,7 +242,7 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
             int serverResponseCode = connection.getResponseCode();
             String response = getResponse(connection);
 
-            Map<String, Object> values = Util.getValues(response);
+            Map values = Util.getValues(response);
             boolean success = values.containsKey("status") && "OK".equals(values.get("status"));
 
             if (listener != null) {
@@ -259,7 +251,10 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
 
             Log.i(TAG, serverResponseCode + ": " + response);
         } catch (Throwable t) {
-            Log.e(TAG, t.getMessage());
+            Log.e(TAG, t.getClass() + ": " + t.getMessage());
+            if (listener != null) {
+                listener.notifyFileDone(this, false, null);
+            }
         }
     }
 
@@ -308,9 +303,8 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
             br.close();
 
             return sb.toString();
-        } catch (IOException ex) {
-            // @TODO: handle this!
-            Log.e(TAG, ex.getMessage());
+        } catch (Throwable t) {
+            Log.e(TAG, t.getClass() + ": " + t.getMessage());
         }
 
         return null;
@@ -376,8 +370,6 @@ public class BrilleappenClient extends AsyncTask<Object, Void, Boolean> {
 
         return syncListener.media;
     }
-
-    private boolean successResult;
 
     public boolean notifyFileSync(Media media, String[] types) {
         BrilleappenClientListener originalListener = this.listener;
