@@ -482,6 +482,7 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
 
                         selectedMenu = MENU_MAIN;
 
+
                         setMenuGroupVisibilty(panelMenu);
 
                         client = new BrilleappenClient(this, eventUrl, username, password);
@@ -551,7 +552,12 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
 
             selectedMenu = MENU_MAIN;
 
-            setMenuGroupVisibilty(panelMenu);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    setMenuGroupVisibilty(panelMenu);
+                }
+            });
 
             saveState();
 
