@@ -48,7 +48,6 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
     private static final int TAKE_PICTURE_REQUEST = 101;
     private static final int RECORD_VIDEO_CAPTURE_REQUEST = 102;
     private static final int SCAN_ADDRESS_REQUEST = 103;
-    private static final int RECORD_MEMO_REQUEST = 104;
 
     private static final String STATE_UNDELIVERED_FILES = "undelivered_files";
     private static final String STATE_EVENT = "event";
