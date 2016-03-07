@@ -664,7 +664,16 @@ public class MainActivity extends BaseActivity implements BrilleappenClientListe
                 }
             });
         } else {
-            undeliveredFiles.add(new UndeliveredFile(event, event.addFileUrl, file.getPath()));
+            boolean alreadyUndeliveredFile = false;
+            for (UndeliveredFile undeliveredFile : undeliveredFiles) {
+                if (undeliveredFile.getFilePath().equals(file.getPath())) {
+                    alreadyUndeliveredFile = true;
+                    break;
+                }
+            }
+            if (!alreadyUndeliveredFile) {
+                undeliveredFiles.add(new UndeliveredFile(event, event.addFileUrl, file.getPath()));
+            }
 
             saveState();
 
